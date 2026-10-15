@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighters/fighter_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fighter_id = 7
+display_name = "Ánh Dương"
+title = "Solar Valkyrie"
+element = "Mặt trời"
+accent = Color(1.000000, 0.788235, 0.156863, 1)
+attack = 1.07
+defense = 1.01
+speed = 435.0
+skill_name = "Solar Flare"
+ultimate_name = "Radiant Sun Goddess"
+style = "solar"

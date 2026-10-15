@@ -1,0 +1,27 @@
+config_version=5
+
+[application]
+config/name="QUEENS OF BATTLE — 8 Nữ Võ Sĩ"
+run/main_scene="res://scenes/core/game.tscn"
+config/icon="res://assets/icons/queen_arena_user.jpg"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=0
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/vram_compression/import_etc2_astc=true
+
+[physics]
+common/physics_ticks_per_second=60
+
+[internationalization]
+locale/translations=PackedStringArray()

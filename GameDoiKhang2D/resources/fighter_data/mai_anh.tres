@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighters/fighter_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fighter_id = 1
+display_name = "Mai Anh"
+title = "Crimson Striker"
+element = "Lửa"
+accent = Color(1.000000, 0.188235, 0.219608, 1)
+attack = 1.08
+defense = 0.93
+speed = 455.0
+skill_name = "Fire Dragon Dash"
+ultimate_name = "Inferno Dragon"
+style = "fire"

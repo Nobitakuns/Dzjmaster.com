@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighters/fighter_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fighter_id = 3
+display_name = "Hồng Nhi"
+title = "Sakura Dancer"
+element = "Hoa anh đào"
+accent = Color(1.000000, 0.549020, 0.796078, 1)
+attack = 0.95
+defense = 0.96
+speed = 485.0
+skill_name = "Sakura Tornado"
+ultimate_name = "Eternal Sakura Bloom"
+style = "sakura"

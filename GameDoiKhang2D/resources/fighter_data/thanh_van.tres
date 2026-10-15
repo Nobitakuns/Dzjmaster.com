@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighters/fighter_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fighter_id = 6
+display_name = "Thanh Vân"
+title = "Holy Guardian"
+element = "Thánh quang"
+accent = Color(0.866667, 0.960784, 1.000000, 1)
+attack = 0.98
+defense = 1.08
+speed = 425.0
+skill_name = "Holy Light Wave"
+ultimate_name = "Seraph Awakening"
+style = "holy"

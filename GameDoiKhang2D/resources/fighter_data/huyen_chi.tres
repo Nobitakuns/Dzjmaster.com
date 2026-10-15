@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighters/fighter_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fighter_id = 2
+display_name = "Huyền Chi"
+title = "Blood Butterfly"
+element = "Huyết điệp"
+accent = Color(0.721569, 0.050980, 0.207843, 1)
+attack = 1.04
+defense = 0.92
+speed = 465.0
+skill_name = "Blood Butterfly Storm"
+ultimate_name = "Blood Moon Eclipse"
+style = "butterfly"

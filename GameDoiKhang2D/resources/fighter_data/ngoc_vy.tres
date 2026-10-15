@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighters/fighter_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fighter_id = 0
+display_name = "Ngọc Vy"
+title = "Shadow Queen"
+element = "Bóng tối"
+accent = Color(0.517647, 0.156863, 0.847059, 1)
+attack = 1.00
+defense = 0.96
+speed = 440.0
+skill_name = "Shadow Wave"
+ultimate_name = "Queen of Shadows"
+style = "shadow"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FighterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighters/fighter_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+fighter_id = 5
+display_name = "Tử Anh"
+title = "Thunder Empress"
+element = "Sấm sét"
+accent = Color(0.627451, 0.356863, 1.000000, 1)
+attack = 1.05
+defense = 0.94
+speed = 470.0
+skill_name = "Thunder Spear"
+ultimate_name = "Empress Thunderstorm"
+style = "thunder"
