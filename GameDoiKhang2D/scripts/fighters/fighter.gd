@@ -426,9 +426,11 @@ func _update_visual(intent: Dictionary) -> void:
 		return
 	var pose := state
 	var progress := _animation_clock
+	var visual_attack_phase := -1
 	if state == "attack" and current_move != null:
 		pose = current_move.key
 		progress = float(move_frame) / float(maxi(1, current_move.duration()))
+		visual_attack_phase = 0 if move_frame < current_move.startup else (1 if move_frame < current_move.startup + current_move.active else 2)
 	elif state == "neutral":
 		if not is_on_floor():
 			pose = "jump" if velocity.y < 0 else "fall"
@@ -448,4 +450,4 @@ func _update_visual(intent: Dictionary) -> void:
 		pose = "get_up"
 	if _animation_player != null and _animation_player.has_animation(pose) and _animation_player.current_animation != pose:
 		_animation_player.play(pose)
-	_visual.set_pose(pose, progress, facing)
+	_visual.set_pose(pose, progress, facing, visual_attack_phase)

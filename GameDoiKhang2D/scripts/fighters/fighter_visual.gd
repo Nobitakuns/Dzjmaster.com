@@ -18,6 +18,7 @@ var display_name: String = "FIGHTER"
 var theme_color: Color = Color("#8428d8")
 var _state: String = "idle"
 var _progress: float = 0.0
+var _attack_phase: int = -1
 var _facing: int = 1
 var _clock: float = 0.0
 var _hit_flash: float = 0.0
@@ -42,9 +43,10 @@ func configure(new_name: String, new_color: Color) -> void:
 	queue_redraw()
 
 
-func set_pose(state: String, progress: float, facing: int) -> void:
+func set_pose(state: String, progress: float, facing: int, attack_phase: int = -1) -> void:
 	_state = state.to_lower().replace(" ", "_")
 	_progress = progress
+	_attack_phase = attack_phase
 	_facing = 1 if facing >= 0 else -1
 	_update_sprite()
 	queue_redraw()
@@ -103,6 +105,15 @@ func _update_sprite() -> void:
 			frame = 4
 		"skill", "ultimate", "victory":
 			frame = 5
+	if _state in ["walk", "walk_forward", "walk_backward", "run"]:
+		# Alternating grounded and step poses prevents the run drawing from hovering.
+		frame = 1 if fmod(_clock * 7.0, 1.0) < 0.50 else 0
+	elif _attack_phase >= 0:
+		# Fighter supplies the same startup/active/recovery phase used by its hitbox.
+		if _attack_phase == 0:
+			frame = 0
+		elif _attack_phase == 2:
+			frame = 4
 	if frame != _shown_frame:
 		_atlas.region = Rect2(float(frame % 3) * 512.0, float(floori(float(frame) / 3.0)) * 512.0, 512.0, 512.0)
 		_shown_frame = frame
@@ -123,7 +134,7 @@ func _update_sprite() -> void:
 		_sprite.rotation = -0.80 * float(_facing)
 	elif _state == "hit_reaction":
 		_sprite.rotation = -0.13 * float(_facing)
-	_sprite.modulate = Color.WHITE if _hit_flash > 0.0 else Color(1, 1, 1, 1)
+	_sprite.modulate = Color("#ff9fb7") if _hit_flash > 0.0 else Color.WHITE
 
 
 func _draw_body() -> void:
