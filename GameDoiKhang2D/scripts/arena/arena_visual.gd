@@ -2,7 +2,7 @@ class_name ArenaVisual
 extends Node2D
 ## Side-view arena art with a separate lightweight animated foreground layer.
 
-const ARENA_ART: Texture2D = preload("res://assets/backgrounds/neon_sakura_arena.png")
+const ARENA_ART: Texture2D = preload("res://assets/backgrounds/underground_queen_arena.png")
 
 const WIDTH: float = 1920.0
 const HEIGHT: float = 1080.0
@@ -31,9 +31,9 @@ func _draw() -> void:
 		var phase := float(i) * 1.43
 		var x := fposmod(float(i * 157) + _time * (24.0 + float(i % 4) * 10.0), WIDTH)
 		var y := 260.0 + fposmod(float(i * 83) + sin(_time * 0.55 + phase) * 31.0, 570.0)
-		var petal := Color("#ffa1dc") if i % 3 != 0 else Color("#bd8bff")
-		petal.a = 0.26 + 0.12 * sin(_time * 1.8 + phase)
-		draw_circle(Vector2(x, y), 2.0 + float(i % 3), petal)
+		var ember := Color("#ff4c68") if i % 3 != 0 else Color("#b78bff")
+		ember.a = 0.20 + 0.12 * sin(_time * 1.8 + phase)
+		draw_circle(Vector2(x, y), 1.7 + float(i % 3), ember)
 
 
 func _draw_sky() -> void:

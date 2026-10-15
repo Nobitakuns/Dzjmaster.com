@@ -6,20 +6,22 @@ Prototype game đối kháng 2D bằng **Godot 4.6.3 stable và GDScript**. Mở
 
 ## APK Android
 
-APK cài thử bản 0.2.0 nằm tại `build/queens-of-battle-v0.2.0-debug.apk` sau khi export. Đây là **bản debug có chữ ký debug**, dành cho cài trực tiếp và kiểm thử, chưa phải bản phát hành Google Play. APK dùng màn hình ngang, hỗ trợ thiết bị ARM 32/64-bit từ Android 7.0 (API 24). Trên điện thoại, chế độ **VS AI** dùng nút cảm ứng nhiều ngón: cụm di chuyển ở trái, đòn đánh/kỹ năng/đỡ ở phải, nút tạm dừng ở giữa phía dưới. Chế độ **LOCAL VS** trên Android cần bàn phím ngoài cho P2.
+[Tải APK v0.3.0 trực tiếp từ GitHub](https://raw.githubusercontent.com/Nobitakuns/Dzjmaster.com/game-v0.3.0/downloads/Queens-of-Battle-Android-v0.3.0.apk). SHA-256: `c2d7fa7c0c995dde22d2c019c11779619636c0b0e016e0df0809565835acb23b`.
+
+APK cài thử bản 0.3.0 nằm tại `build/queens-of-battle-v0.3.0-debug.apk` sau khi export. Đây là **bản debug có chữ ký debug**, dành cho cài trực tiếp và kiểm thử, chưa phải bản phát hành Google Play. APK dùng màn hình ngang, hỗ trợ thiết bị ARM 32/64-bit từ Android 7.0 (API 24). Trên điện thoại, chế độ **VS AI** dùng nút cảm ứng nhiều ngón: cụm di chuyển ở trái, đòn đánh/kỹ năng/đỡ ở phải, nút tạm dừng ở giữa phía dưới. Chế độ **LOCAL VS** trên Android cần bàn phím ngoài cho P2.
 
 Để xuất lại từ máy đã cài Godot 4.6.3, Android SDK Platform 36, Build Tools 36.0.0 và OpenJDK 21, cấu hình đường dẫn Android SDK/Java trong Godot Editor Settings → Export → Android, cài export templates 4.6.3, rồi chạy trong thư mục dự án:
 
 ```bash
 mkdir -p build
 godot --headless --path . --editor --quit
-godot --headless --path . --export-debug "Android Debug" build/queens-of-battle-v0.2.0-debug.apk
+godot --headless --path . --export-debug "Android Debug" build/queens-of-battle-v0.3.0-debug.apk
 ```
 
 Chép APK sang điện thoại rồi mở tệp để cài, hoặc dùng Android Debug Bridge:
 
 ```bash
-adb install -r build/queens-of-battle-v0.2.0-debug.apk
+adb install -r build/queens-of-battle-v0.3.0-debug.apk
 ```
 
 Nếu Android hỏi quyền cài từ nguồn này, hãy cấp quyền cho ứng dụng quản lý tệp đang mở APK. Icon launcher dùng ảnh `assets/icons/queen_arena_user.jpg` do người dùng cung cấp. Chưa kiểm thử trực tiếp trên thiết bị Android thật; kiểm thử cảm ứng hiện chạy bằng sự kiện mô phỏng trong Godot headless.
@@ -65,7 +67,7 @@ Menu **CÀI ĐẶT** cho phép đổi phím P1/P2 và đặt lại phím mặc �
 - Đấm, đá, đòn thứ ba trong combo, kỹ năng và tuyệt kỹ có dữ liệu startup / active / recovery, sát thương, tầm đánh, hit stun, block stun, knockback và cooldown trong `MoveData` / `MoveCatalog`.
 - Kỹ năng cần **25 năng lượng** và có cooldown **210 physics frame**; tuyệt kỹ cần **100 năng lượng** và có cooldown **540 physics frame**. Năng lượng được giới hạn trong khoảng 0–100, nên không thể tung tuyệt kỹ liên tục.
 - Fighter dùng `CharacterBody2D` và `CollisionShape2D` để va chạm thân; `Area2D` riêng cho hitbox và hurtbox. Có đỡ đòn giảm sát thương, counter hit, knockdown, get up, combo scaling, hit stop, hiệu ứng va chạm, rung camera và phần mở đầu ngắn khi kích hoạt tuyệt kỹ.
-- Hiện có **một đấu trường** Neon Underground được vẽ bằng Godot, với các lớp nền chuyển động, sàn và biên va chạm. HUD hiển thị HP, năng lượng, timer, round, điểm round và combo. Âm thanh hit / block / skill / ultimate / KO là WAV tạo cho prototype.
+- Hiện có **một đấu trường** Neon Underground dùng tranh nền gốc cùng hiệu ứng nhẹ bằng Godot, sàn và biên va chạm. HUD có thanh máu đối xứng, chân dung, timer, điểm round và khung combo theo từng võ sĩ. Điều khiển Android dùng cụm hướng và nút tròn nhiều ngón. Âm thanh hit / block / skill / ultimate / KO là WAV tạo cho prototype.
 - Tám võ sĩ đều có `FighterData` riêng, tên chiêu riêng và có thể chọn để đấu: Ngọc Vy, Mai Anh, Huyền Chi, Hồng Nhi, Bảo Châu, Tử Anh, Thanh Vân, Ánh Dương. Kỹ năng đặc biệt dùng các cơ chế như sóng bay, lao tới, vùng sát thương, dịch chuyển, sét, hồi máu hoặc ánh sáng; tuyệt kỹ dùng vùng/đường tấn công nhiều hit tùy nhân vật. Hai nhân vật mặc định Thanh Vân và Ngọc Vy là trọng tâm kiểm thử trận cơ bản.
 - AI Dễ / Thường / Khó khác nhau về thời gian phản ứng, di chuyển, xác suất đỡ đòn, combo và quyết định dùng kỹ năng/tuyệt kỹ. AI phát ý định điều khiển vào cùng `Fighter` và vẫn chịu luật năng lượng, cooldown, hitbox và sát thương.
 
@@ -116,7 +118,7 @@ godot --headless --path . --script res://tests/test_android_battle.gd
 
 ## Ảnh tham chiếu và tài nguyên còn thiếu
 
-Các JPG người dùng cung cấp là ảnh concept/giao diện tổng hợp, không có frame nhân vật độc lập đủ sạch để dùng trực tiếp làm sprite chiến đấu. Bản 0.2.0 tạo tranh mới theo phong cách tham chiếu: một atlas tám chân dung cho màn chọn/HUD, tám atlas sáu tư thế có alpha cho trận đấu, cùng tranh nền menu và đấu trường. Mỗi võ sĩ đổi tư thế theo trạng thái gameplay; phần mỹ thuật này **chưa tái tạo chính xác ảnh tham chiếu** và chưa có chuỗi frame đầy đủ cho từng animation. Ảnh concept gốc không được dùng làm sprite chuyển động.
+Các JPG người dùng cung cấp là ảnh concept/giao diện tổng hợp, không có frame nhân vật độc lập đủ sạch để dùng trực tiếp làm sprite chiến đấu. Bản 0.3.0 tạo tranh mới theo phong cách tham chiếu: một atlas tám chân dung cho màn chọn/HUD, tám atlas sáu tư thế có alpha cho trận đấu, cùng tranh nền menu và đấu trường. Mỗi võ sĩ đổi tư thế theo trạng thái gameplay; phần mỹ thuật này **chưa tái tạo chính xác ảnh tham chiếu** và chưa có chuỗi frame đầy đủ cho từng animation. Ảnh concept gốc không được dùng làm sprite chuyển động.
 
 Để đạt chất lượng hình ảnh như tham chiếu, cần cung cấp hoặc sản xuất:
 

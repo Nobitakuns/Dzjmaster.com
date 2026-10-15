@@ -8,6 +8,7 @@ const MAX_ENERGY := 100
 const INK := Color("#080d20")
 const MUTED := Color("#aab9da")
 const CYAN := Color("#54e8ff")
+const CRIMSON := Color("#ff536d")
 const GOLD := Color("#ffd36b")
 
 var _p1_data: FighterData
@@ -27,6 +28,8 @@ var _ready_labels: Array[Label] = []
 var _win_labels: Array[Label] = []
 var _combo_panels: Array[PanelContainer] = []
 var _combo_labels: Array[Label] = []
+var _combo_names: Array[Label] = []
+var _combo_portraits: Array[FighterPortrait] = []
 var _combo_timers: Array[Timer] = []
 var _timer_label: Label
 var _round_label: Label
@@ -65,10 +68,10 @@ func update_state(p1_hp: int, p2_hp: int, p1_energy: int, p2_energy: int,
 		var energy_value: int = clampi(energy[slot], 0, MAX_ENERGY)
 		_hp_bars[slot].value = hp_value
 		_energy_bars[slot].value = energy_value
-		_hp_labels[slot].text = "%d / %d HP" % [hp_value, MAX_HP]
+		_hp_labels[slot].text = "%d / %d" % [hp_value, MAX_HP]
 		_energy_labels[slot].text = "NĂNG LƯỢNG  %d%%" % energy_value
 		_ready_labels[slot].visible = energy_value >= MAX_ENERGY
-		_win_labels[slot].text = "THẮNG  %s" % ("●".repeat(clampi(wins[slot], 0, 2)) + "○".repeat(2 - clampi(wins[slot], 0, 2)))
+		_win_labels[slot].text = "●".repeat(clampi(wins[slot], 0, 2)) + "○".repeat(2 - clampi(wins[slot], 0, 2))
 	_timer_label.text = "%02d" % ceili(maxf(time_left, 0.0))
 	_round_label.text = "ROUND %d  •  BO3" % round_number
 
@@ -120,31 +123,31 @@ func _build_ui() -> void:
 
 	var top := HBoxContainer.new()
 	top.anchor_right = 1.0
-	top.offset_left = 42.0
-	top.offset_top = 20.0
-	top.offset_right = -42.0
-	top.offset_bottom = 205.0
+	top.offset_left = 28.0
+	top.offset_top = 18.0
+	top.offset_right = -28.0
+	top.offset_bottom = 191.0
 	top.add_theme_constant_override("separation", 18)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(top)
 
 	top.add_child(_fighter_panel(0))
 	var center := PanelContainer.new()
-	center.custom_minimum_size.x = 246
-	center.add_theme_stylebox_override("panel", _panel_style(Color("#10152d"), CYAN, 2))
+	center.custom_minimum_size.x = 204
+	center.add_theme_stylebox_override("panel", _panel_style(Color("#080c1fdf"), GOLD, 2))
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(center)
 	var center_stack := VBoxContainer.new()
 	center_stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	center_stack.add_theme_constant_override("separation", 1)
 	center.add_child(center_stack)
-	_round_label = _label("ROUND 1  •  BO3", 18, MUTED)
+	_round_label = _label("ROUND 1  •  BO3", 18, GOLD)
 	_round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center_stack.add_child(_round_label)
-	_timer_label = _label("99", 64, Color.WHITE)
+	_timer_label = _label("99", 70, Color.WHITE)
 	_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center_stack.add_child(_timer_label)
-	var vs_label := _label("QUEENS OF BATTLE", 15, CYAN)
+	var vs_label := _label("QUEENS OF BATTLE", 14, MUTED)
 	vs_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center_stack.add_child(vs_label)
 	top.add_child(_fighter_panel(1))
@@ -153,19 +156,37 @@ func _build_ui() -> void:
 		var combo := PanelContainer.new()
 		combo.anchor_left = 0.0 if slot == 0 else 1.0
 		combo.anchor_right = 0.0 if slot == 0 else 1.0
-		combo.offset_left = 45.0 if slot == 0 else -445.0
-		combo.offset_right = 445.0 if slot == 0 else -45.0
-		combo.offset_top = 234.0
-		combo.offset_bottom = 332.0
-		combo.add_theme_stylebox_override("panel", _panel_style(Color("#10152de8"), CYAN, 2))
+		combo.offset_left = 34.0 if slot == 0 else -484.0
+		combo.offset_right = 484.0 if slot == 0 else -34.0
+		combo.offset_top = 216.0
+		combo.offset_bottom = 416.0
+		combo.add_theme_stylebox_override("panel", _panel_style(Color("#080b1bd3"), CYAN if slot == 0 else CRIMSON, 2))
 		combo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		combo.visible = false
 		_root.add_child(combo)
 		_combo_panels.append(combo)
-		var combo_label := _label("", 25, GOLD)
-		combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if slot == 0 else HORIZONTAL_ALIGNMENT_RIGHT
-		combo.add_child(combo_label)
+		var combo_row := HBoxContainer.new()
+		combo_row.add_theme_constant_override("separation", 11)
+		combo.add_child(combo_row)
+		var combo_portrait := FighterPortrait.new()
+		combo_portrait.custom_minimum_size = Vector2(154, 175)
+		combo_portrait.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_combo_portraits.append(combo_portrait)
+		var combo_text := VBoxContainer.new()
+		combo_text.alignment = BoxContainer.ALIGNMENT_CENTER
+		combo_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var combo_name := _label("", 18, CYAN)
+		combo_text.add_child(combo_name)
+		_combo_names.append(combo_name)
+		var combo_label := _label("", 36, GOLD)
+		combo_text.add_child(combo_label)
 		_combo_labels.append(combo_label)
+		if slot == 0:
+			combo_row.add_child(combo_portrait)
+			combo_row.add_child(combo_text)
+		else:
+			combo_row.add_child(combo_text)
+			combo_row.add_child(combo_portrait)
 		var combo_timer := Timer.new()
 		combo_timer.one_shot = true
 		combo_timer.wait_time = 1.5
@@ -176,8 +197,8 @@ func _build_ui() -> void:
 	_ultimate_panel = PanelContainer.new()
 	_ultimate_panel.anchor_left = 0.26
 	_ultimate_panel.anchor_right = 0.74
-	_ultimate_panel.offset_top = 230.0
-	_ultimate_panel.offset_bottom = 332.0
+	_ultimate_panel.offset_top = 215.0
+	_ultimate_panel.offset_bottom = 317.0
 	_ultimate_panel.add_theme_stylebox_override("panel", _panel_style(INK, GOLD, 3))
 	_ultimate_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ultimate_panel.visible = false
@@ -225,7 +246,7 @@ func _build_ui() -> void:
 func _fighter_panel(slot: int) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel", _panel_style(Color("#111a38ee"), CYAN, 2))
+	panel.add_theme_stylebox_override("panel", _panel_style(Color("#0b1022e4"), CYAN if slot == 0 else CRIMSON, 2))
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 3)
@@ -234,9 +255,10 @@ func _fighter_panel(slot: int) -> PanelContainer:
 	heading.add_theme_constant_override("separation", 12)
 	stack.add_child(heading)
 	var portrait := PanelContainer.new()
-	portrait.custom_minimum_size = Vector2(70, 70)
-	portrait.add_theme_stylebox_override("panel", _panel_style(Color("#151c3b"), CYAN, 2))
-	heading.add_child(portrait)
+	portrait.custom_minimum_size = Vector2(96, 96)
+	portrait.add_theme_stylebox_override("panel", _panel_style(Color("#151c3b"), CYAN if slot == 0 else CRIMSON, 2))
+	if slot == 0:
+		heading.add_child(portrait)
 	_portrait_panels.append(portrait)
 	var portrait_image := FighterPortrait.new()
 	portrait.add_child(portrait_image)
@@ -247,20 +269,23 @@ func _fighter_panel(slot: int) -> PanelContainer:
 	portrait_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	portrait.add_child(portrait_label)
 	_portrait_labels.append(portrait_label)
-	var name_label := _label("", 27, Color.WHITE)
+	var name_label := _label("", 25, Color.WHITE)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if slot == 1 else HORIZONTAL_ALIGNMENT_LEFT
 	heading.add_child(name_label)
 	_name_labels.append(name_label)
-	var win_label := _label("THẮNG  ○○", 18, GOLD)
+	var win_label := _label("○○", 24, GOLD)
 	heading.add_child(win_label)
 	_win_labels.append(win_label)
+	if slot == 1:
+		heading.add_child(portrait)
 	var element_label := _label("", 16, MUTED)
 	stack.add_child(element_label)
 	_element_labels.append(element_label)
-	var hp_bar := _meter(MAX_HP, Color("#ff5783"), 27)
+	var hp_bar := _meter(MAX_HP, CYAN if slot == 0 else CRIMSON, 28)
 	stack.add_child(hp_bar)
 	_hp_bars.append(hp_bar)
-	var hp_label := _label("2000 / 2000 HP", 17, Color.WHITE)
+	var hp_label := _label("2000 / 2000", 17, Color.WHITE)
 	stack.add_child(hp_label)
 	_hp_labels.append(hp_label)
 	var energy_row := HBoxContainer.new()
@@ -288,14 +313,18 @@ func _refresh_fighters() -> void:
 		var data := data_list[slot]
 		var accent := CYAN if data == null else data.accent
 		_portrait_images[slot].set_fighter(0 if data == null else data.fighter_id)
+		_combo_portraits[slot].set_fighter(0 if data == null else data.fighter_id)
 		_portrait_labels[slot].text = ["☾", "◆", "✧", "✿", "◇", "ϟ", "✦", "☼"][data.fighter_id] if data != null else "✦"
 		_portrait_labels[slot].add_theme_color_override("font_color", accent)
 		_portrait_panels[slot].add_theme_stylebox_override("panel", _panel_style(Color("#151c3b"), accent, 2))
-		_name_labels[slot].text = ("P1" if slot == 0 else "P2") + "  " + ("VÕ SĨ" if data == null else data.display_name.to_upper())
-		_name_labels[slot].add_theme_color_override("font_color", accent)
+		_name_labels[slot].text = ("1P" if slot == 0 else "2P") + "  " + ("VÕ SĨ" if data == null else data.display_name.to_upper())
+		_name_labels[slot].add_theme_color_override("font_color", Color.WHITE)
 		_element_labels[slot].text = "HỆ SỨC MẠNH  •  " + ("—" if data == null else data.element.to_upper())
+		_hp_bars[slot].add_theme_stylebox_override("fill", _panel_style(CYAN if slot == 0 else CRIMSON, accent, 0))
 		_energy_bars[slot].add_theme_stylebox_override("fill", _panel_style(accent, accent, 0))
-		_combo_labels[slot].add_theme_color_override("font_color", accent)
+		_combo_names[slot].text = "✦  " + ("VÕ SĨ" if data == null else data.display_name.to_upper())
+		_combo_names[slot].add_theme_color_override("font_color", accent)
+		_combo_panels[slot].add_theme_stylebox_override("panel", _panel_style(Color("#080b1bd3"), accent, 2))
 	_controls_label.text = "P1  A/D đi  W nhảy  S ngồi  J đấm  K đá  L kỹ năng  U tuyệt kỹ  I đỡ   •   ESC tạm dừng"
 	if _mode == "local":
 		_controls_label.text = "P1  A/D/W/S + J/K/L/U/I     •     P2  ←/→/↑/↓ + 1/2/3/4/5     •     ESC tạm dừng"

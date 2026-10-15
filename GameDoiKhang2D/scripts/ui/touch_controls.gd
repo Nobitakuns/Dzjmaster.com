@@ -10,8 +10,8 @@ const ACTIONS: Array[String] = [
 	"left", "right", "jump", "crouch", "punch", "kick", "skill", "ultimate", "block"
 ]
 const NAMES := {
-	"left": "←\nTRÁI", "right": "→\nPHẢI", "jump": "↑\nNHẢY", "crouch": "↓\nNGỒI",
-	"punch": "ĐẤM", "kick": "ĐÁ", "skill": "KỸ NĂNG", "ultimate": "TUYỆT KỸ",
+	"left": "←", "right": "→", "jump": "↑", "crouch": "↓",
+	"punch": "ĐẤM", "kick": "ĐÁ", "skill": "KỸ\nNĂNG", "ultimate": "TUYỆT\nKỸ",
 	"block": "ĐỠ"
 }
 const KEYS_P1 := {"punch": "J", "kick": "K", "skill": "L", "ultimate": "U", "block": "I"}
@@ -26,6 +26,7 @@ var player_slot: int = 1
 var _root: Control
 var _buttons: Dictionary = {}
 var _labels: Dictionary = {}
+var _joystick_ring: Panel
 var _finger_actions: Dictionary = {} # touch index -> action suffix (or "pause")
 var _hold_counts: Dictionary = {} # action suffix -> number of fingers
 var _shown: bool = false
@@ -40,6 +41,11 @@ func _ready() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.visible = false
 	add_child(_root)
+	_joystick_ring = Panel.new()
+	_joystick_ring.name = "JoystickRing"
+	_joystick_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_joystick_ring.add_theme_stylebox_override("panel", _ring_style())
+	_root.add_child(_joystick_ring)
 	for suffix in ACTIONS:
 		_make_button(suffix, Color("#50dfff") if suffix in ["left", "right", "jump", "crouch", "block"] else Color("#ff82cb"))
 	_make_button("pause", Color("#ffdb76"))
@@ -108,7 +114,7 @@ func _make_button(suffix: String, accent: Color) -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_override("font", FONT)
-	label.add_theme_font_size_override("font_size", 25 if suffix == "pause" else 24)
+	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	panel.add_child(label)
 	_buttons[suffix] = panel
@@ -117,12 +123,23 @@ func _make_button(suffix: String, accent: Color) -> void:
 
 func _button_style(accent: Color, held: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(accent.r * 0.18, accent.g * 0.18, accent.b * 0.27, 0.78 if held else 0.53)
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.96 if held else 0.68)
+	style.bg_color = Color(accent.r * 0.16, accent.g * 0.16, accent.b * 0.22, 0.84 if held else 0.57)
+	style.border_color = Color(accent.r, accent.g, accent.b, 1.0 if held else 0.76)
 	style.set_border_width_all(4 if held else 3)
-	style.set_corner_radius_all(26)
-	style.shadow_color = Color(accent.r, accent.g, accent.b, 0.28 if held else 0.13)
-	style.shadow_size = 7 if held else 4
+	style.set_corner_radius_all(999)
+	style.shadow_color = Color(accent.r, accent.g, accent.b, 0.38 if held else 0.19)
+	style.shadow_size = 12 if held else 7
+	return style
+
+
+func _ring_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#0a112b60")
+	style.border_color = Color("#b8edff93")
+	style.set_border_width_all(4)
+	style.set_corner_radius_all(999)
+	style.shadow_color = Color("#60b9ff40")
+	style.shadow_size = 8
 	return style
 
 
@@ -132,10 +149,10 @@ func _update_labels() -> void:
 	var keys: Dictionary = KEYS_P1 if player_slot == 1 else KEYS_P2
 	for suffix in ACTIONS:
 		var title: String = NAMES[suffix]
-		if keys.has(suffix):
+		if keys.has(suffix) and suffix not in ["left", "right", "jump", "crouch"]:
 			title = "%s\n%s" % [keys[suffix], title]
 		(_labels[suffix] as Label).text = title
-	(_labels["pause"] as Label).text = "Ⅱ\nDỪNG"
+	(_labels["pause"] as Label).text = "Ⅱ"
 
 
 func _layout_buttons() -> void:
@@ -145,31 +162,34 @@ func _layout_buttons() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
 	var scale_factor := minf(viewport_size.x / 1920.0, viewport_size.y / 1080.0)
-	var diameter := 116.0 * scale_factor
+	var diameter := 132.0 * scale_factor
 	var safe := _safe_margins(viewport_size)
 	var left := safe.x + 28.0 * scale_factor
 	var right := viewport_size.x - safe.z - 28.0 * scale_factor
 	var bottom := viewport_size.y - safe.w - 24.0 * scale_factor
+	var stick_center := Vector2(left + 166.0 * scale_factor, bottom - 175.0 * scale_factor)
+	_joystick_ring.position = stick_center - Vector2.ONE * 158.0 * scale_factor
+	_joystick_ring.size = Vector2.ONE * 316.0 * scale_factor
 	var dpad_centers := {
-		"left": Vector2(left + 62.0 * scale_factor, bottom - 176.0 * scale_factor),
-		"right": Vector2(left + 202.0 * scale_factor, bottom - 176.0 * scale_factor),
-		"jump": Vector2(left + 132.0 * scale_factor, bottom - 304.0 * scale_factor),
-		"crouch": Vector2(left + 132.0 * scale_factor, bottom - 55.0 * scale_factor),
+		"left": stick_center + Vector2(-99.0, 0.0) * scale_factor,
+		"right": stick_center + Vector2(99.0, 0.0) * scale_factor,
+		"jump": stick_center + Vector2(0.0, -99.0) * scale_factor,
+		"crouch": stick_center + Vector2(0.0, 99.0) * scale_factor,
 	}
 	var attack_centers := {
-		"punch": Vector2(right - 220.0 * scale_factor, bottom - 112.0 * scale_factor),
-		"kick": Vector2(right - 370.0 * scale_factor, bottom - 216.0 * scale_factor),
-		"skill": Vector2(right - 220.0 * scale_factor, bottom - 320.0 * scale_factor),
-		"ultimate": Vector2(right - 66.0 * scale_factor, bottom - 320.0 * scale_factor),
-		"block": Vector2(right - 66.0 * scale_factor, bottom - 112.0 * scale_factor),
+		"punch": Vector2(right - 91.0 * scale_factor, bottom - 178.0 * scale_factor),
+		"kick": Vector2(right - 286.0 * scale_factor, bottom - 93.0 * scale_factor),
+		"skill": Vector2(right - 290.0 * scale_factor, bottom - 288.0 * scale_factor),
+		"ultimate": Vector2(right - 100.0 * scale_factor, bottom - 367.0 * scale_factor),
+		"block": Vector2(right - 472.0 * scale_factor, bottom - 197.0 * scale_factor),
 	}
 	for suffix in dpad_centers:
-		_place(suffix, dpad_centers[suffix], diameter)
+		_place(suffix, dpad_centers[suffix], 89.0 * scale_factor)
 	for suffix in attack_centers:
 		_place(suffix, attack_centers[suffix], diameter)
-	_place("pause", Vector2(viewport_size.x * 0.5, bottom - 58.0 * scale_factor), diameter * 0.82)
+	_place("pause", Vector2(viewport_size.x * 0.5, bottom - 68.0 * scale_factor), diameter * 0.70)
 	for label in _labels.values():
-		(label as Label).add_theme_font_size_override("font_size", maxi(13, roundi(24.0 * scale_factor)))
+		(label as Label).add_theme_font_size_override("font_size", maxi(14, roundi(24.0 * scale_factor)))
 
 
 func _place(suffix: String, center: Vector2, diameter: float) -> void:
@@ -207,7 +227,8 @@ func _refresh_visibility() -> void:
 
 func _hit_test(point: Vector2) -> String:
 	for suffix in _buttons:
-		if (_buttons[suffix] as Control).get_global_rect().has_point(point):
+		var rect := (_buttons[suffix] as Control).get_global_rect()
+		if rect.get_center().distance_to(point) <= rect.size.x * 0.50:
 			return suffix
 	return ""
 
