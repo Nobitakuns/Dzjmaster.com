@@ -66,8 +66,47 @@ enum UpdateChecker {
                 alert.addButton(withTitle: "Để sau")
                 if alert.runModal() == .alertFirstButtonReturn,
                    let asset = release.assets.first(where: { $0.name.hasSuffix(".dmg") }) {
-                    NSWorkspace.shared.open(asset.browser_download_url)
+                    download(asset)
                 }
+            }
+        }.resume()
+    }
+
+    private static func download(_ asset: MacRelease.Asset) {
+        URLSession.shared.downloadTask(with: asset.browser_download_url) { temporary, response, error in
+            let destination = FileManager.default.urls(for: .downloadsDirectory,
+                                                       in: .userDomainMask)[0]
+                .appendingPathComponent(asset.name)
+            var saved = false
+            if error == nil, let temporary,
+               let status = (response as? HTTPURLResponse)?.statusCode,
+               (200...299).contains(status) {
+                do {
+                    if FileManager.default.fileExists(atPath: destination.path) {
+                        try FileManager.default.removeItem(at: destination)
+                    }
+                    try FileManager.default.moveItem(at: temporary, to: destination)
+                    saved = true
+                } catch { saved = false }
+            }
+            DispatchQueue.main.async {
+                guard saved else {
+                    let alert = NSAlert()
+                    alert.messageText = "Không tải được bản cập nhật"
+                    alert.informativeText = "Bạn có thể mở trang tải trong trình duyệt."
+                    alert.addButton(withTitle: "Mở trang tải")
+                    alert.addButton(withTitle: "Đóng")
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        NSWorkspace.shared.open(asset.browser_download_url)
+                    }
+                    return
+                }
+                let alert = NSAlert()
+                alert.messageText = "Đã tải PixiePop mới"
+                alert.informativeText = "Mở DMG, kéo PixiePop vào Applications và chọn Thay thế để cập nhật."
+                alert.addButton(withTitle: "Mở DMG")
+                alert.addButton(withTitle: "Để sau")
+                if alert.runModal() == .alertFirstButtonReturn { NSWorkspace.shared.open(destination) }
             }
         }.resume()
     }

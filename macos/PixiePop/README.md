@@ -12,7 +12,7 @@ The optional screenshot action saves a PNG in `~/Pictures/PixiePop` using macOS 
 
 ## Updating
 
-PixiePop checks the repository's Mac release list on launch and from **Kiểm tra cập nhật**. If a newer `pixiepop-mac-v*` release exists, it offers the DMG download. Quit the old app, open the new DMG, and drag PixiePop into Applications to replace it. Character, size, gesture, and position settings remain in macOS UserDefaults. This is a user-confirmed update, not a silent installer.
+PixiePop checks the repository's Mac release list on launch and from **Kiểm tra cập nhật**. If a newer `pixiepop-mac-v*` release exists, it downloads the DMG to Downloads and offers to open it. Quit the old app, open the new DMG, and drag PixiePop into Applications to replace it. Character, size, gesture, and position settings remain in macOS UserDefaults. This is a user-confirmed update, not a silent installer.
 
 ## Build
 
