@@ -1,0 +1,25 @@
+name: Publish GhostGirl APK
+
+on:
+  push:
+    tags:
+      - ghostgirl-v1.0.2
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify APK
+        run: echo '2e3c00d2168cc71c62abe92c8c90706a20c42c4d28f19a2faeed17e618289ca2  downloads/GhostGirl-Android-V1.0.2-debug.apk' | sha256sum -c -
+      - name: Publish downloadable APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            downloads/GhostGirl-Android-V1.0.2-debug.apk \
+            --title "GhostGirl Android 1.0.2" \
+            --notes "GhostGirl 1.0.2 debug APK. Android 16 overlay stability update. SHA-256: 2e3c00d2168cc71c62abe92c8c90706a20c42c4d28f19a2faeed17e618289ca2"
