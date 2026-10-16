@@ -10,6 +10,9 @@ data class GhostSettings(
     val animationSpeed: Float = 1f,
     val snapToEdge: Boolean = true,
     val character: GhostCharacter = GhostCharacter.GHOST_GIRL,
+    val doubleTapAction: GestureAction = GestureAction.HAPPY,
+    val tripleTapAction: GestureAction = GestureAction.NEXT_CHARACTER,
+    val openAppComponent: String? = null,
 ) {
     fun normalized(): GhostSettings = copy(
         sizeDp = sizeDp.coerceIn(72, 240),
@@ -74,6 +77,9 @@ class GhostSettingsStore(context: Context) {
         animationSpeed = preferences.getFloat("animation_speed", 1f),
         snapToEdge = preferences.getBoolean("snap_to_edge", true),
         character = GhostCharacter.fromId(preferences.getString("character_id", null)),
+        doubleTapAction = GestureAction.fromName(preferences.getString("double_tap_action", null), GestureAction.HAPPY),
+        tripleTapAction = GestureAction.fromName(preferences.getString("triple_tap_action", null), GestureAction.NEXT_CHARACTER),
+        openAppComponent = preferences.getString("open_app_component", null),
     ).normalized()
 
     fun save(settings: GhostSettings) {
@@ -84,6 +90,9 @@ class GhostSettingsStore(context: Context) {
             putFloat("animation_speed", safe.animationSpeed)
             putBoolean("snap_to_edge", safe.snapToEdge)
             putString("character_id", safe.character.id)
+            putString("double_tap_action", safe.doubleTapAction.name)
+            putString("triple_tap_action", safe.tripleTapAction.name)
+            putString("open_app_component", safe.openAppComponent)
         }
     }
 

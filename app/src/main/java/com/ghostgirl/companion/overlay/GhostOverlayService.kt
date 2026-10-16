@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -14,12 +15,16 @@ import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.Icon
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.Manifest
+import android.content.pm.PackageManager
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
@@ -29,8 +34,12 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.net.toUri
+import androidx.core.content.ContextCompat
+import com.ghostgirl.companion.CaptureConsentActivity
 import com.ghostgirl.companion.MainActivity
 import com.ghostgirl.companion.R
+import com.ghostgirl.companion.capture.ScreenCaptureService
+import com.ghostgirl.companion.model.GestureAction
 import com.ghostgirl.companion.model.GhostMood
 import com.ghostgirl.companion.model.TapSequence
 import com.ghostgirl.companion.model.GhostSettingsStore
@@ -63,6 +72,8 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     private var startWindowY = 0
     private var dragging = false
     private var longPressed = false
+    private var torchOn = false
+    private var torchCameraId: String? = null
     private val touchSlop by lazy { ViewConfiguration.get(this).scaledTouchSlop }
 
     private val preferenceListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -123,6 +134,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
                 ACTION_STOP -> stopSelf()
                 ACTION_PREVIEW -> sprite?.showMood(
                     GhostMood.fromName(intent.getStringExtra(EXTRA_MOOD)), 2_500L)
+                ACTION_TORCH -> toggleTorch()
                 ACTION_UPDATE -> applySettings()
                 else -> showOverlay()
             }
@@ -139,6 +151,10 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
         longPressTask?.let { sprite?.removeCallbacks(it) }
         mainHandler.removeCallbacks(finishTaps)
         taps.cancel()
+        if (torchOn) {
+            try { torchCameraId?.let { getSystemService(CameraManager::class.java).setTorchMode(it, false) } }
+            catch (_: Exception) { /* Camera may be gone during shutdown. */ }
+        }
         if (preferencesRegistered) store.preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener)
         if (displayRegistered) displayManager.unregisterDisplayListener(this)
         if (receiverRegistered) unregisterReceiver(screenReceiver)
@@ -389,14 +405,83 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
                 sprite?.showMood(GhostMood.HAPPY, 900L)
                 launchChatGpt()
             }
-            TapSequence.Gesture.DOUBLE -> sprite?.showMood(GhostMood.HAPPY, 2_000L)
-            TapSequence.Gesture.TRIPLE -> {
+            TapSequence.Gesture.DOUBLE -> performConfiguredAction(store.read().doubleTapAction)
+            TapSequence.Gesture.TRIPLE -> performConfiguredAction(store.read().tripleTapAction)
+        }
+    }
+
+    private fun performConfiguredAction(action: GestureAction) {
+        when (action) {
+            GestureAction.HAPPY -> sprite?.showMood(GhostMood.HAPPY, 2_000L)
+            GestureAction.NEXT_CHARACTER -> {
                 val next = store.read().character.next()
                 sprite?.setCharacter(next)
                 store.save(store.read().copy(character = next))
                 sprite?.showMood(GhostMood.REACTING, 1_100L)
                 Toast.makeText(this, next.label, Toast.LENGTH_SHORT).show()
             }
+            GestureAction.OPEN_APP -> launchSelectedApp()
+            GestureAction.FLASHLIGHT -> {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    toggleTorch()
+                } else {
+                    startActivity(Intent(this, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        putExtra(MainActivity.EXTRA_REQUEST_TORCH, true)
+                    })
+                }
+            }
+            GestureAction.SCREENSHOT, GestureAction.SCREEN_RECORD -> {
+                if (action == GestureAction.SCREEN_RECORD && ScreenCaptureService.isRecording) {
+                    startService(Intent(this, ScreenCaptureService::class.java)
+                        .setAction(ScreenCaptureService.ACTION_STOP))
+                } else {
+                    startActivity(Intent(this, CaptureConsentActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        putExtra(CaptureConsentActivity.EXTRA_RECORD,
+                            action == GestureAction.SCREEN_RECORD)
+                    })
+                }
+            }
+        }
+    }
+
+    private fun launchSelectedApp() {
+        val selected = ComponentName.unflattenFromString(store.read().openAppComponent.orEmpty())
+        if (selected == null) {
+            launchChatGpt()
+            return
+        }
+        try {
+            startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                .setComponent(selected).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (_: RuntimeException) {
+            Toast.makeText(this, "Không mở được ứng dụng đã chọn. Hãy chọn lại trong cài đặt.",
+                Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun toggleTorch() {
+        try {
+            val cameraManager = getSystemService(CameraManager::class.java)
+            val cameraId = torchCameraId ?: cameraManager.cameraIdList.firstOrNull { id ->
+                val characteristics = cameraManager.getCameraCharacteristics(id)
+                characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true &&
+                    characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
+            } ?: cameraManager.cameraIdList.firstOrNull { id ->
+                cameraManager.getCameraCharacteristics(id)
+                    .get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            }
+            if (cameraId == null) {
+                Toast.makeText(this, "Thiết bị không có đèn pin", Toast.LENGTH_SHORT).show()
+                return
+            }
+            cameraManager.setTorchMode(cameraId, !torchOn)
+            torchCameraId = cameraId
+            torchOn = !torchOn
+            Toast.makeText(this, if (torchOn) "Đèn pin bật" else "Đèn pin tắt", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, "Không điều khiển được đèn pin lúc này", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -504,6 +589,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
         const val ACTION_STOP = "com.ghostgirl.companion.STOP"
         const val ACTION_UPDATE = "com.ghostgirl.companion.UPDATE"
         const val ACTION_PREVIEW = "com.ghostgirl.companion.PREVIEW"
+        const val ACTION_TORCH = "com.ghostgirl.companion.TORCH"
         const val EXTRA_MOOD = "mood"
         private const val CHATGPT_PACKAGE = "com.openai.chatgpt"
         private const val CHANNEL_ID = "ghostgirl_overlay"

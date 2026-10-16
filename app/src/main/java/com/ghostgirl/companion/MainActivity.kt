@@ -1,6 +1,7 @@
 package com.ghostgirl.companion
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -18,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.ghostgirl.companion.model.GhostMood
+import com.ghostgirl.companion.model.LaunchableApp
 import com.ghostgirl.companion.model.GhostSettings
 import com.ghostgirl.companion.model.GhostSettingsStore
 import com.ghostgirl.companion.overlay.GhostOverlayService
@@ -33,6 +35,7 @@ class MainActivity : ComponentActivity() {
     private var overlayError by mutableStateOf<String?>(null)
     private var lastFatal by mutableStateOf<String?>(null)
     private var openedFromOverlay by mutableStateOf(false)
+    private var launchableApps by mutableStateOf<List<LaunchableApp>>(emptyList())
     private val handler = Handler(Looper.getMainLooper())
     private val startTimeout = Runnable {
         if (overlayStarting && !GhostOverlayService.isOverlayVisible) {
@@ -64,6 +67,10 @@ class MainActivity : ComponentActivity() {
         refreshStatus()
     }
 
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) sendTorchAction() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsStore = GhostSettingsStore(this)
@@ -88,8 +95,11 @@ class MainActivity : ComponentActivity() {
                 onRequestOverlay = ::startOverlayFlow,
                 onStopOverlay = ::stopOverlay,
                 onPreviewMood = ::previewMood,
+                launchableApps = launchableApps,
             )
         }
+        loadLaunchableApps()
+        processTorchRequest(intent)
     }
 
     override fun onResume() {
@@ -117,6 +127,40 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         openedFromOverlay = intent.getBooleanExtra(EXTRA_OPENED_FROM_OVERLAY, false)
         refreshStatus()
+        processTorchRequest(intent)
+    }
+
+    private fun processTorchRequest(request: Intent?) {
+        if (request?.getBooleanExtra(EXTRA_REQUEST_TORCH, false) != true) return
+        request.removeExtra(EXTRA_REQUEST_TORCH)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            sendTorchAction()
+        } else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
+    private fun loadLaunchableApps() {
+        Thread({
+            try {
+                val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                @Suppress("DEPRECATION")
+                val activities = packageManager.queryIntentActivities(launcher, 0)
+                val choices = activities.mapNotNull { info ->
+                    val activity = info.activityInfo ?: return@mapNotNull null
+                    LaunchableApp(info.loadLabel(packageManager).toString(),
+                        ComponentName(activity.packageName, activity.name).flattenToString())
+                }.distinctBy { it.component }.sortedBy { it.label.lowercase() }
+                runOnUiThread { if (!isDestroyed) launchableApps = choices }
+            } catch (_: RuntimeException) {
+                // App selection remains on the ChatGPT default if a launcher cannot be queried.
+            }
+        }, "GhostGirlAppPicker").start()
+    }
+
+    private fun sendTorchAction() {
+        if (GhostOverlayService.isOverlayVisible) {
+            startService(Intent(this, GhostOverlayService::class.java)
+                .setAction(GhostOverlayService.ACTION_TORCH))
+        }
     }
 
     private fun refreshStatus() {
@@ -184,5 +228,6 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_OPENED_FROM_OVERLAY = "opened_from_overlay"
+        const val EXTRA_REQUEST_TORCH = "request_torch"
     }
 }

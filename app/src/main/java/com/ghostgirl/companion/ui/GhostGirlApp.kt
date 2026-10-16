@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.safeDrawing
@@ -20,16 +21,21 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,8 +54,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.ghostgirl.companion.model.GhostCharacter
+import com.ghostgirl.companion.model.GestureAction
 import com.ghostgirl.companion.model.GhostMood
 import com.ghostgirl.companion.model.GhostSettings
+import com.ghostgirl.companion.model.LaunchableApp
 import kotlin.math.roundToInt
 
 private val Background = Color(0xFF15111F)
@@ -71,11 +79,13 @@ fun GhostGirlApp(
     onRequestOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
     onPreviewMood: (GhostMood) -> Unit,
+    launchableApps: List<LaunchableApp>,
 ) {
     var previewMood by remember { mutableStateOf(GhostMood.IDLE) }
     var sizeValue by remember(settings.sizeDp) { mutableFloatStateOf(settings.sizeDp.toFloat()) }
     var opacityValue by remember(settings.opacity) { mutableFloatStateOf(settings.opacity) }
     var speedValue by remember(settings.animationSpeed) { mutableFloatStateOf(settings.animationSpeed) }
+    var showAppPicker by remember { mutableStateOf(false) }
 
     MaterialTheme(colorScheme = darkColorScheme(
         primary = Rose,
@@ -94,6 +104,29 @@ fun GhostGirlApp(
                 Text("GhostGirl", style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold, color = Rose)
                 Text("Bạn đồng hành nổi trên màn hình", color = Lavender)
+            }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = CardColor),
+                    shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Thao tác chạm", style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold)
+                        GestureActionPicker("Chạm 2 lần", settings.doubleTapAction) {
+                            onSettingsChanged(settings.copy(doubleTapAction = it))
+                        }
+                        GestureActionPicker("Chạm 3 lần", settings.tripleTapAction) {
+                            onSettingsChanged(settings.copy(tripleTapAction = it))
+                        }
+                        val appLabel = if (settings.openAppComponent == null) "ChatGPT (mặc định)"
+                            else launchableApps.firstOrNull { it.component == settings.openAppComponent }?.label
+                                ?: "Ứng dụng đã chọn"
+                        OutlinedButton(onClick = { showAppPicker = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Ứng dụng để mở: $appLabel")
+                        }
+                        Text("Chụp/quay màn hình sẽ hỏi quyền Android mỗi lần bắt đầu. Chạm lại thao tác quay để dừng.",
+                            color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = CardColor),
@@ -200,8 +233,48 @@ fun GhostGirlApp(
                 }
             }
             item {
-                Text("Chạm 1 lần: mở ChatGPT hoặc Play Store. Chạm 2 lần: phản ứng vui. Chạm 3 lần: đổi nhân vật. Nhấn giữ: mở cài đặt. Kéo: di chuyển. GhostGirl không tự mở Voice và không cần API key.",
+                Text("Chạm 1 lần: mở ChatGPT hoặc Play Store. Chạm 2/3 lần: thao tác đã chọn ở trên. Nhấn giữ: mở cài đặt. Kéo: di chuyển. GhostGirl không tự mở Voice và không cần API key.",
                     color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        if (showAppPicker) {
+            AlertDialog(onDismissRequest = { showAppPicker = false },
+                title = { Text("Chọn ứng dụng") },
+                text = {
+                    LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                        item {
+                            TextButton(onClick = {
+                                onSettingsChanged(settings.copy(openAppComponent = null))
+                                showAppPicker = false
+                            }) { Text("ChatGPT (mặc định)") }
+                        }
+                        items(launchableApps) { app ->
+                            TextButton(onClick = {
+                                onSettingsChanged(settings.copy(openAppComponent = app.component))
+                                showAppPicker = false
+                            }) { Text(app.label) }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showAppPicker = false }) { Text("Đóng") } })
+        }
+    }
+}
+
+@Composable
+private fun GestureActionPicker(title: String, selected: GestureAction, onSelected: (GestureAction) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        Text(title, color = Lavender)
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+            Text(selected.label)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            GestureAction.entries.forEach { action ->
+                DropdownMenuItem(text = { Text(action.label) }, onClick = {
+                    expanded = false
+                    onSelected(action)
+                })
             }
         }
     }

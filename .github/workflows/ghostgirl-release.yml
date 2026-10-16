@@ -3,7 +3,7 @@ name: Publish GhostGirl APK
 on:
   push:
     tags:
-      - ghostgirl-v1.1.0
+      - ghostgirl-v1.2.0
 
 permissions:
   contents: write
@@ -14,12 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify APK
-        run: echo 'e91e33f8bd4b6deef0e0961fcc33c92b93d4e64ed9360810e2fd42326091e7bf  downloads/GhostGirl-Android-V1.1.0-debug.apk' | sha256sum -c -
+        run: echo 'dc5628332cf134eedcd55f0a6ad560086959e368fa98c9974dd663aa3d4c8a7c  downloads/GhostGirl-Android-V1.2.0-debug.apk' | sha256sum -c -
       - name: Publish downloadable APK
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            downloads/GhostGirl-Android-V1.1.0-debug.apk \
-            --title "GhostGirl Android 1.1.0" \
-            --notes "GhostGirl 1.1.0 debug APK. Adds double/triple tap and five selectable reference-derived characters. SHA-256: e91e33f8bd4b6deef0e0961fcc33c92b93d4e64ed9360810e2fd42326091e7bf"
+            downloads/GhostGirl-Android-V1.2.0-debug.apk \
+            --title "GhostGirl Android 1.2.0" \
+            --notes "GhostGirl 1.2.0 debug APK. Configurable double/triple tap actions, selected app launch, flashlight, MediaProjection screenshot/recording, and cat-maid character. SHA-256: dc5628332cf134eedcd55f0a6ad560086959e368fa98c9974dd663aa3d4c8a7c"
