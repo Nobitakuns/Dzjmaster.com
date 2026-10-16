@@ -2,7 +2,7 @@
 
 Native Kotlin + Jetpack Compose Android project for a floating pixel-art companion. The overlay uses `WindowManager.TYPE_APPLICATION_OVERLAY`; the settings screen uses Compose. It does not need an OpenAI API key and does not connect to any API.
 
-[Download GhostGirl Android V1.0.2 debug APK](https://raw.githubusercontent.com/Nobitakuns/Dzjmaster.com/new-project/downloads/GhostGirl-Android-V1.0.2-debug.apk) (overlay stability update). SHA-256: `2e3c00d2168cc71c62abe92c8c90706a20c42c4d28f19a2faeed17e618289ca2`. The APK has version code 3 and installs over V1/V1.0.1 when signed with the same debug key.
+[Download GhostGirl Android V1.0.2 debug APK](https://github.com/Nobitakuns/Dzjmaster.com/releases/download/ghostgirl-v1.0.2/GhostGirl-Android-V1.0.2-debug.apk) (overlay stability update). SHA-256: `2e3c00d2168cc71c62abe92c8c90706a20c42c4d28f19a2faeed17e618289ca2`. The APK has version code 3 and installs over V1/V1.0.1 when signed with the same debug key.
 
 ## Build and install
 
