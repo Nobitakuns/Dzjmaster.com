@@ -2,7 +2,7 @@
 
 Native Kotlin + Jetpack Compose Android project for a floating pixel-art companion. The overlay uses `WindowManager.TYPE_APPLICATION_OVERLAY`; the settings screen uses Compose. It does not need an OpenAI API key and does not connect to any API.
 
-[Download GhostGirl Android V1.0.1 debug APK](https://raw.githubusercontent.com/Nobitakuns/Dzjmaster.com/new-project/downloads/GhostGirl-Android-V1.0.1-debug.apk) (overlay startup fix). SHA-256: `f1071d7a6ce98062bf842d52b78ed3bf5456389f6fc3cdbb3defd23056a079c7`. The APK has version code 2 and installs over V1.
+[Download GhostGirl Android V1.0.2 debug APK](https://raw.githubusercontent.com/Nobitakuns/Dzjmaster.com/new-project/downloads/GhostGirl-Android-V1.0.2-debug.apk) (overlay stability update). SHA-256: `2e3c00d2168cc71c62abe92c8c90706a20c42c4d28f19a2faeed17e618289ca2`. The APK has version code 3 and installs over V1/V1.0.1 when signed with the same debug key.
 
 ## Build and install
 
@@ -26,6 +26,8 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. Minimum Android version 
 6. Use **Dừng nhân vật nổi** or the notification **Dừng** action to remove the overlay and stop the service.
 
 If the floating character does not appear after tapping **Bắt đầu nhân vật nổi**, the app now shows a specific startup error instead of silently reverting to the start button. Check the on-screen message and Android's **Display over other apps** setting. The service also writes the full exception to Logcat under `GhostOverlayService` for diagnosis. The app starts its foreground service before requesting optional notification permission; notification denial does not block the overlay. Real-device verification on a Galaxy Z Fold5 is still required.
+
+V1.0.2 uses the service context for the overlay window to avoid window-token mismatches on vendor Android builds. It also saves a short local crash reason and shows it under **Nhân vật nổi** when the app is reopened. If Android still closes GhostGirl, send a screenshot of that reason; it is stored only on the device and is never uploaded.
 
 GhostGirl does **not** start ChatGPT Voice, automate accessibility actions, use undocumented deep links, listen to speech, or read other apps. The app requests no Internet permission. The launcher package is `com.openai.chatgpt`; package visibility is declared in `<queries>`.
 

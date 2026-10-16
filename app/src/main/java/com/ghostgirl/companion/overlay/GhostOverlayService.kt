@@ -81,13 +81,9 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
                 startForeground(NOTIFICATION_ID, notification)
             }
             foregroundStarted = true
-            // Some vendor implementations reject a window context before the first overlay is attached.
-            overlayContext = try {
-                createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
-            } catch (error: RuntimeException) {
-                Log.w(TAG, "Window context unavailable; using service context", error)
-                this
-            }
+            // A service WindowManager uses the same context as the sprite view and avoids
+            // vendor-specific window-token mismatches when attaching an overlay.
+            overlayContext = this
             windowManager = overlayContext.getSystemService(WindowManager::class.java)
             displayManager = getSystemService(DisplayManager::class.java)
             store.preferences.registerOnSharedPreferenceChangeListener(preferenceListener)
@@ -116,16 +112,17 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
             stopSelf()
             return START_NOT_STICKY
         }
-        when (intent?.action) {
-            ACTION_STOP -> {
-                stopSelf()
-                return START_NOT_STICKY
+        try {
+            when (intent?.action) {
+                ACTION_STOP -> stopSelf()
+                ACTION_PREVIEW -> sprite?.showMood(
+                    GhostMood.fromName(intent.getStringExtra(EXTRA_MOOD)), 2_500L)
+                ACTION_UPDATE -> applySettings()
+                else -> showOverlay()
             }
-            ACTION_PREVIEW -> {
-                sprite?.showMood(GhostMood.fromName(intent.getStringExtra(EXTRA_MOOD)), 2_500L)
-            }
-            ACTION_UPDATE -> applySettings()
-            else -> showOverlay()
+        } catch (error: RuntimeException) {
+            reportFailure("Lỗi khi cập nhật nhân vật nổi", error)
+            stopSelf()
         }
         return START_NOT_STICKY
     }
@@ -144,12 +141,23 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        mainHandler.post { refreshScreenBounds() }
+        scheduleScreenRefresh()
     }
 
-    override fun onDisplayChanged(displayId: Int) { mainHandler.post { refreshScreenBounds() } }
-    override fun onDisplayAdded(displayId: Int) { mainHandler.post { refreshScreenBounds() } }
-    override fun onDisplayRemoved(displayId: Int) { mainHandler.post { refreshScreenBounds() } }
+    override fun onDisplayChanged(displayId: Int) { scheduleScreenRefresh() }
+    override fun onDisplayAdded(displayId: Int) { scheduleScreenRefresh() }
+    override fun onDisplayRemoved(displayId: Int) { scheduleScreenRefresh() }
+
+    private fun scheduleScreenRefresh() {
+        mainHandler.post {
+            try {
+                refreshScreenBounds()
+            } catch (error: RuntimeException) {
+                reportFailure("Lỗi khi đổi màn hình", error)
+                stopSelf()
+            }
+        }
+    }
 
     private fun showOverlay() {
         if (!Settings.canDrawOverlays(this)) {
@@ -340,7 +348,8 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
             windowManager.updateViewLayout(view, params)
         } catch (_: IllegalArgumentException) {
             // A display transition can invalidate the old window before the next callback.
-        } catch (_: SecurityException) {
+        } catch (error: SecurityException) {
+            reportFailure("Android từ chối cập nhật cửa sổ nổi", error)
             stopSelf()
         }
     }

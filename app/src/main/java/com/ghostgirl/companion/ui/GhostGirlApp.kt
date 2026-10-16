@@ -65,6 +65,7 @@ fun GhostGirlApp(
     overlayRunning: Boolean,
     overlayStarting: Boolean,
     overlayError: String?,
+    lastFatal: String?,
     openedFromOverlay: Boolean,
     onSettingsChanged: (GhostSettings) -> Unit,
     onRequestOverlay: () -> Unit,
@@ -136,6 +137,8 @@ fun GhostGirlApp(
                         if (overlayStarting) Text("Đang tạo cửa sổ nổi…", color = Lavender)
                         if (overlayError != null) Text(overlayError, color = Rose,
                             style = MaterialTheme.typography.bodySmall)
+                        if (lastFatal != null) Text("Lỗi lần chạy trước: $lastFatal. Hãy chụp đoạn này gửi để kiểm tra.",
+                            color = Rose, style = MaterialTheme.typography.bodySmall)
                         Button(onClick = onRequestOverlay, enabled = !overlayRunning && !overlayStarting,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = Rose,

@@ -61,6 +61,7 @@ class GhostSettingsStore(context: Context) {
     companion object {
         const val KEY_OVERLAY_ERROR = "overlay_error"
         const val KEY_OVERLAY_VISIBLE = "overlay_visible"
+        const val KEY_LAST_FATAL = "last_fatal"
     }
 
     val preferences: SharedPreferences =
@@ -105,4 +106,6 @@ class GhostSettingsStore(context: Context) {
     fun setOverlayVisible(visible: Boolean) {
         preferences.edit { putBoolean(KEY_OVERLAY_VISIBLE, visible) }
     }
+
+    fun lastFatal(): String? = preferences.getString(KEY_LAST_FATAL, null)
 }

@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private var overlayRunning by mutableStateOf(false)
     private var overlayStarting by mutableStateOf(false)
     private var overlayError by mutableStateOf<String?>(null)
+    private var lastFatal by mutableStateOf<String?>(null)
     private var openedFromOverlay by mutableStateOf(false)
     private val handler = Handler(Looper.getMainLooper())
     private val startTimeout = Runnable {
@@ -63,6 +64,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         settingsStore = GhostSettingsStore(this)
         ghostSettings = settingsStore.read()
+        lastFatal = settingsStore.lastFatal()
         openedFromOverlay = intent.getBooleanExtra(EXTRA_OPENED_FROM_OVERLAY, false)
         refreshStatus()
         setContent {
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
                 overlayRunning = overlayRunning,
                 overlayStarting = overlayStarting,
                 overlayError = overlayError,
+                lastFatal = lastFatal,
                 openedFromOverlay = openedFromOverlay,
                 onSettingsChanged = { next ->
                     ghostSettings = next.normalized()
