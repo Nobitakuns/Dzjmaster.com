@@ -1,8 +1,8 @@
-# PixiePop Android 1.3
+# PixiePop Android 1.4
 
 Native Kotlin + Jetpack Compose Android project for a floating pixel-art companion. The overlay uses `WindowManager.TYPE_APPLICATION_OVERLAY`; the settings screen uses Compose. It does not need an OpenAI API key and does not connect to any API.
 
-[Download PixiePop Android 1.3.0 debug APK](https://github.com/Nobitakuns/Dzjmaster.com/releases/download/pixiepop-v1.3.0/PixiePop-Android-V1.3.0-debug.apk). SHA-256: `54861a7d720d70ae05c6290dde3fde122bf27f866ee0a5bd8e1f587330005701`. The release APK has version code 6 and installs over earlier versions when signed with the same debug key. Its Android package ID remains `com.ghostgirl.companion` to preserve existing installations and settings.
+[Download PixiePop Android 1.4.0 debug APK](https://github.com/Nobitakuns/Dzjmaster.com/releases/download/pixiepop-v1.4.0/PixiePop-Android-V1.4.0-debug.apk). SHA-256: `4b8e701af56bdcd00d93f4d189a52488146830ce83645bb65ac06758afbb600b`. The release APK has version code 7 and installs over earlier versions when signed with the same debug key. Its Android package ID remains `com.ghostgirl.companion` to preserve existing installations and settings.
 
 ## Build and install
 
@@ -23,7 +23,7 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. Minimum Android version 
 3. Tap **Bắt đầu nhân vật nổi** if the system returned to the app without starting it. A small transparent character appears above other apps.
 4. Drag the character to move it. It snaps to the nearest screen edge when enabled. Long press it to open PixiePop settings.
 5. Single tap the character to launch the installed official ChatGPT Android app through its normal launcher activity. If absent, PixiePop opens the ChatGPT Play Store listing (or its web listing). Single tap waits 330 ms so a second/third tap can be recognized.
-6. Configure double and triple taps independently under **Thao tác chạm**. Defaults are happy reaction and next character. Options: happy reaction, next character, open a selected installed app, toggle flashlight, screenshot, or start/stop screen recording. A drag or long press cancels any unfinished tap sequence.
+6. Configure double and triple taps independently under **Thao tác chạm**. Defaults are happy reaction and next character. Options: happy reaction, next character, open a selected installed app, toggle flashlight, screenshot, or start/stop screen recording. To use instant screenshots, tap **Cấp quyền chụp màn hình** and enable **PixiePop chụp màn hình** in Android Accessibility settings once. A drag or long press cancels any unfinished tap sequence.
 7. Use **Dừng nhân vật nổi** or the notification **Dừng** action to remove the overlay and stop the service.
 
 If the floating character does not appear after tapping **Bắt đầu nhân vật nổi**, the app now shows a specific startup error instead of silently reverting to the start button. Check the on-screen message and Android's **Display over other apps** setting. The service also writes the full exception to Logcat under `GhostOverlayService` for diagnosis. The app starts its foreground service before requesting optional notification permission; notification denial does not block the overlay. Real-device verification on a Galaxy Z Fold5 is still required.
@@ -36,7 +36,9 @@ PixiePop does **not** start ChatGPT Voice, automate accessibility actions, use u
 
 **Mở ứng dụng** launches the installed app chosen in settings. If none is chosen, it launches ChatGPT as before. The flashlight action asks for the Android camera permission on first use and reports when the device has no flash.
 
-**Chụp màn hình** and **Quay màn hình** use Android MediaProjection. Android displays its own consent dialog each time a new capture begins; the app cannot capture silently. Screenshots are saved to `Pictures/PixiePop` as PNG, and videos to `Movies/PixiePop` as MP4. A recording can be stopped by repeating its assigned gesture or tapping **Dừng** in its foreground notification. Video has no microphone or internal audio. Android may offer to share one app instead of the whole screen; the saved capture follows that choice.
+**Chụp màn hình** uses Android's documented `AccessibilityService.takeScreenshot` API to capture the currently visible display without the app/screen picker after the user explicitly enables the screenshot service. The service subscribes to no accessibility events, reads no UI hierarchy, and performs no gestures. Android may reject screenshots of protected content. Screenshots are saved to `Pictures/PixiePop` as PNG. On Android versions that restrict accessibility for sideloaded APKs, open PixiePop's app info menu and choose **Allow restricted settings** before enabling this service.
+
+**Quay màn hình** still uses MediaProjection. Android displays its consent dialog each time a recording begins and may offer to share one app or the whole display. Videos are saved to `Movies/PixiePop` as MP4. A recording can be stopped by repeating its assigned gesture or tapping **Dừng** in its foreground notification. Video has no microphone or internal audio.
 
 ## Animation and assets
 
@@ -58,6 +60,6 @@ On rotation and display changes, the service reads current window metrics and sa
 ./gradlew testDebugUnitTest
 ```
 
-The tests cover settings limits, overlay bounds/snap logic on narrow folded dimensions, atlas and character crop mapping, character cycling, gesture timing/cancellation, persisted action mapping, and even video size limits. Manual device checks still needed: permission grant/revoke, starting/stopping the service, single/double/triple tap with each assigned action, camera permission/flash availability, MediaProjection approval/denial, screenshot/video files, recording stop, long press settings, drag and edge snap, notification stop, screen off battery behavior, and unfolding/rotation on a Galaxy Z Fold5 with Android 16.
+The tests cover settings limits, overlay bounds/snap logic on narrow folded dimensions, atlas and character crop mapping, character cycling, gesture timing/cancellation, persisted action mapping, and video size limits. Manual device checks still needed: screenshot service enable/disable, visible display and protected-content screenshots, screenshot/video files, MediaProjection approval/denial for recordings, permission grant/revoke, starting/stopping the overlay, single/double/triple tap with each assigned action, camera permission/flash availability, recording stop, long press settings, drag and edge snap, notification stop, screen off battery behavior, and unfolding/rotation on a Galaxy Z Fold5 with Android 16.
 
-The cloud build runs `testDebugUnitTest`, `assembleDebug`, `lintDebug`, `apksigner verify`, and `zipalign -c`. No physical Galaxy Z Fold5 was available for installation testing.
+The cloud build runs `testDebugUnitTest`, `assembleDebug`, `lintDebug`, `apksigner verify`, and `zipalign -c`. No physical Galaxy Z Fold5 was available for installation testing. The local Android emulator cannot start because this cloud host has no KVM acceleration, so the screenshot permission flow still needs a real-device check.

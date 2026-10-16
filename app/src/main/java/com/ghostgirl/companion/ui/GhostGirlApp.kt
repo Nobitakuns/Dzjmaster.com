@@ -70,6 +70,7 @@ fun GhostGirlApp(
     settings: GhostSettings,
     overlayGranted: Boolean,
     notificationsGranted: Boolean,
+    screenshotReady: Boolean,
     overlayRunning: Boolean,
     overlayStarting: Boolean,
     overlayError: String?,
@@ -78,6 +79,7 @@ fun GhostGirlApp(
     onSettingsChanged: (GhostSettings) -> Unit,
     onRequestOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
+    onOpenScreenshotSettings: () -> Unit,
     onPreviewMood: (GhostMood) -> Unit,
     launchableApps: List<LaunchableApp>,
 ) {
@@ -123,7 +125,18 @@ fun GhostGirlApp(
                         OutlinedButton(onClick = { showAppPicker = true }, modifier = Modifier.fillMaxWidth()) {
                             Text("Ứng dụng để mở: $appLabel")
                         }
-                        Text("Chụp/quay màn hình sẽ hỏi quyền Android mỗi lần bắt đầu. Chạm lại thao tác quay để dừng.",
+                        Text(if (screenshotReady)
+                            "Chụp ảnh toàn màn hình đã sẵn sàng. Ảnh lưu vào Pictures/PixiePop."
+                            else "Để chụp ảnh ngay mà không chọn ứng dụng/màn hình mỗi lần, bật dịch vụ PixiePop chụp màn hình trong Cài đặt trợ năng một lần.",
+                            color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = onOpenScreenshotSettings,
+                            modifier = Modifier.fillMaxWidth()) {
+                            Text(if (screenshotReady) "Quản lý quyền chụp màn hình"
+                                else "Cấp quyền chụp màn hình")
+                        }
+                        if (!screenshotReady) Text("Nếu Android chặn quyền cho APK cài ngoài, mở Thông tin ứng dụng PixiePop → ⋮ → Cho phép cài đặt bị hạn chế, rồi quay lại bật dịch vụ.",
+                            color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+                        Text("Quay màn hình vẫn cần Android xác nhận mỗi lần bắt đầu. Chạm lại thao tác quay để dừng.",
                             color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
                     }
                 }

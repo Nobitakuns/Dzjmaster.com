@@ -8,12 +8,9 @@ import android.app.Service
 import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.graphics.Bitmap
-import android.graphics.PixelFormat
 import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
-import android.media.ImageReader
 import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -28,26 +25,23 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
-import androidx.core.graphics.createBitmap
 import com.ghostgirl.companion.MainActivity
 import com.ghostgirl.companion.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Saves a single screenshot or a user-stoppable video after MediaProjection consent. */
+/** Records a user-stoppable video after MediaProjection consent. */
 class ScreenCaptureService : Service() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var workerThread: HandlerThread? = null
     private var worker: Handler? = null
     private var projection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
-    private var imageReader: ImageReader? = null
     private var recorder: MediaRecorder? = null
     private var outputFd: ParcelFileDescriptor? = null
     private var outputUri: Uri? = null
     private var outputFinished = false
-    private var frameHandled = false
     private var stopping = false
     private var recording = false
 
@@ -64,6 +58,10 @@ class ScreenCaptureService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        if (intent?.action != ACTION_RECORD) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (projection != null) return START_NOT_STICKY
         val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
         @Suppress("DEPRECATION")
@@ -72,10 +70,9 @@ class ScreenCaptureService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        val wantsRecording = intent.action == ACTION_RECORD
         try {
             createNotificationChannel()
-            startForeground(NOTIFICATION_ID, buildNotification(wantsRecording),
+            startForeground(NOTIFICATION_ID, buildNotification(),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
             workerThread = HandlerThread("GhostGirlCapture").also { it.start() }
             worker = Handler(workerThread!!.looper)
@@ -87,74 +84,13 @@ class ScreenCaptureService : Service() {
             val width = bounds.width().coerceAtLeast(2)
             val height = bounds.height().coerceAtLeast(2)
             val density = resources.displayMetrics.densityDpi
-            if (wantsRecording) startRecording(width, height, density)
-            else worker!!.postDelayed({ startScreenshot(width, height, density) }, 500L)
+            startRecording(width, height, density)
         } catch (error: Exception) {
             Log.e(TAG, "Cannot start screen capture", error)
-            Toast.makeText(this, "Không chụp/quay được: ${error.message.orEmpty().take(80)}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Không quay được: ${error.message.orEmpty().take(80)}", Toast.LENGTH_LONG).show()
             stopSelf()
         }
         return START_NOT_STICKY
-    }
-
-    private fun startScreenshot(width: Int, height: Int, density: Int) {
-        try {
-            val reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
-            imageReader = reader
-            reader.setOnImageAvailableListener({ source ->
-                if (frameHandled) {
-                    source.acquireLatestImage()?.close()
-                    return@setOnImageAvailableListener
-                }
-                val image = source.acquireLatestImage() ?: return@setOnImageAvailableListener
-                frameHandled = true
-                try {
-                    val plane = image.planes[0]
-                    val paddedWidth = width + (plane.rowStride - plane.pixelStride * width) / plane.pixelStride
-                    val padded = createBitmap(paddedWidth, height, Bitmap.Config.ARGB_8888)
-                    padded.copyPixelsFromBuffer(plane.buffer)
-                    val cropped = if (paddedWidth == width) padded
-                        else Bitmap.createBitmap(padded, 0, 0, width, height)
-                    if (cropped !== padded) padded.recycle()
-                    saveScreenshot(cropped)
-                    cropped.recycle()
-                    mainHandler.post { Toast.makeText(this, "Đã lưu ảnh vào Pictures/PixiePop", Toast.LENGTH_SHORT).show() }
-                } catch (error: Exception) {
-                    Log.e(TAG, "Screenshot failed", error)
-                    mainHandler.post { Toast.makeText(this, "Không lưu được ảnh màn hình", Toast.LENGTH_SHORT).show() }
-                } finally {
-                    image.close()
-                    mainHandler.post { stopSelf() }
-                }
-            }, worker)
-            virtualDisplay = projection!!.createVirtualDisplay("GhostGirlScreenshot", width, height,
-                density, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader.surface, null, worker)
-            worker?.postDelayed({
-                if (!frameHandled) mainHandler.post {
-                    Toast.makeText(this, "Hết thời gian chờ ảnh màn hình", Toast.LENGTH_SHORT).show()
-                    stopSelf()
-                }
-            }, 8_000L)
-        } catch (error: Exception) {
-            Log.e(TAG, "Cannot create screenshot display", error)
-            mainHandler.post { stopSelf() }
-        }
-    }
-
-    private fun saveScreenshot(bitmap: Bitmap) {
-        val values = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "PixiePop_${timestamp()}.png")
-            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/PixiePop")
-            put(MediaStore.Images.Media.IS_PENDING, 1)
-        }
-        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-            ?: error("Cannot create screenshot file")
-        outputUri = uri
-        contentResolver.openOutputStream(uri)?.use { stream ->
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream))
-        } ?: error("Cannot write screenshot")
-        finishOutput()
     }
 
     @Suppress("DEPRECATION")
@@ -211,7 +147,6 @@ class ScreenCaptureService : Service() {
         runCatching { recorder?.reset() }
         runCatching { recorder?.release() }
         runCatching { virtualDisplay?.release() }
-        runCatching { imageReader?.close() }
         runCatching { projection?.unregisterCallback(projectionCallback) }
         runCatching { projection?.stop() }
         runCatching { outputFd?.close() }
@@ -228,7 +163,7 @@ class ScreenCaptureService : Service() {
             NotificationChannel(CHANNEL_ID, "PixiePop chụp/quay màn hình", NotificationManager.IMPORTANCE_LOW))
     }
 
-    private fun buildNotification(record: Boolean): Notification {
+    private fun buildNotification(): Notification {
         val stop = PendingIntent.getService(this, 42,
             Intent(this, ScreenCaptureService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -236,8 +171,8 @@ class ScreenCaptureService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(if (record) "PixiePop đang quay màn hình" else "PixiePop đang chụp màn hình")
-            .setContentText(if (record) "Chạm Dừng để lưu video" else "Đang lưu ảnh")
+            .setContentTitle("PixiePop đang quay màn hình")
+            .setContentText("Chạm Dừng để lưu video")
             .setContentIntent(open)
             .setOngoing(true)
             .addAction(Notification.Action.Builder(
@@ -249,7 +184,6 @@ class ScreenCaptureService : Service() {
         private const val TAG = "ScreenCaptureService"
         private const val CHANNEL_ID = "ghostgirl_capture"
         private const val NOTIFICATION_ID = 1002
-        const val ACTION_SCREENSHOT = "com.ghostgirl.companion.SCREENSHOT"
         const val ACTION_RECORD = "com.ghostgirl.companion.RECORD"
         const val ACTION_STOP = "com.ghostgirl.companion.STOP_CAPTURE"
         const val EXTRA_RESULT_CODE = "result_code"

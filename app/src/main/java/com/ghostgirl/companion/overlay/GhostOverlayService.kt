@@ -39,6 +39,7 @@ import com.ghostgirl.companion.CaptureConsentActivity
 import com.ghostgirl.companion.MainActivity
 import com.ghostgirl.companion.R
 import com.ghostgirl.companion.capture.ScreenCaptureService
+import com.ghostgirl.companion.capture.InstantScreenshotService
 import com.ghostgirl.companion.model.GestureAction
 import com.ghostgirl.companion.model.GhostMood
 import com.ghostgirl.companion.model.TapSequence
@@ -431,15 +432,21 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
                     })
                 }
             }
-            GestureAction.SCREENSHOT, GestureAction.SCREEN_RECORD -> {
-                if (action == GestureAction.SCREEN_RECORD && ScreenCaptureService.isRecording) {
+            GestureAction.SCREENSHOT -> {
+                if (!InstantScreenshotService.captureCurrentDisplay(sprite?.display?.displayId
+                        ?: android.view.Display.DEFAULT_DISPLAY)) {
+                    Toast.makeText(this, "Hãy bật PixiePop chụp màn hình trong Cài đặt trợ năng một lần",
+                        Toast.LENGTH_LONG).show()
+                    openSettings()
+                }
+            }
+            GestureAction.SCREEN_RECORD -> {
+                if (ScreenCaptureService.isRecording) {
                     startService(Intent(this, ScreenCaptureService::class.java)
                         .setAction(ScreenCaptureService.ACTION_STOP))
                 } else {
                     startActivity(Intent(this, CaptureConsentActivity::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra(CaptureConsentActivity.EXTRA_RECORD,
-                            action == GestureAction.SCREEN_RECORD)
                     })
                 }
             }

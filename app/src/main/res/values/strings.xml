@@ -2,4 +2,6 @@
     <string name="app_name">PixiePop</string>
     <string name="notification_title">PixiePop đang hiển thị</string>
     <string name="notification_text">Nhấn để mở cài đặt · Chạm nhân vật để mở ChatGPT</string>
+    <string name="screenshot_service_label">PixiePop chụp màn hình</string>
+    <string name="screenshot_service_description">Cho phép PixiePop chụp ảnh màn hình đang hiển thị khi bạn chạm nhân vật. Không đọc cây giao diện hoặc tự thao tác thiết bị.</string>
 </resources>

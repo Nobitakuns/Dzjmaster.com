@@ -22,6 +22,7 @@ import com.ghostgirl.companion.model.GhostMood
 import com.ghostgirl.companion.model.LaunchableApp
 import com.ghostgirl.companion.model.GhostSettings
 import com.ghostgirl.companion.model.GhostSettingsStore
+import com.ghostgirl.companion.capture.InstantScreenshotService
 import com.ghostgirl.companion.overlay.GhostOverlayService
 import com.ghostgirl.companion.ui.GhostGirlApp
 
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private var ghostSettings by mutableStateOf(GhostSettings())
     private var overlayGranted by mutableStateOf(false)
     private var notificationsGranted by mutableStateOf(true)
+    private var screenshotReady by mutableStateOf(false)
     private var overlayRunning by mutableStateOf(false)
     private var overlayStarting by mutableStateOf(false)
     private var overlayError by mutableStateOf<String?>(null)
@@ -83,6 +85,7 @@ class MainActivity : ComponentActivity() {
                 settings = ghostSettings,
                 overlayGranted = overlayGranted,
                 notificationsGranted = notificationsGranted,
+                screenshotReady = screenshotReady,
                 overlayRunning = overlayRunning,
                 overlayStarting = overlayStarting,
                 overlayError = overlayError,
@@ -94,6 +97,9 @@ class MainActivity : ComponentActivity() {
                 },
                 onRequestOverlay = ::startOverlayFlow,
                 onStopOverlay = ::stopOverlay,
+                onOpenScreenshotSettings = {
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                },
                 onPreviewMood = ::previewMood,
                 launchableApps = launchableApps,
             )
@@ -167,6 +173,7 @@ class MainActivity : ComponentActivity() {
         overlayGranted = Settings.canDrawOverlays(this)
         notificationsGranted = Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        screenshotReady = InstantScreenshotService.isReady()
         overlayRunning = GhostOverlayService.isOverlayVisible
         overlayError = settingsStore.overlayError()
         if (overlayRunning || overlayError != null) overlayStarting = false
