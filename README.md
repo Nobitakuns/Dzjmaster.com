@@ -1,5 +1,7 @@
 # PixiePop Android 1.4
 
+For the Apple Silicon Mac app, see [PixiePop for macOS](macos/PixiePop/README.md).
+
 Native Kotlin + Jetpack Compose Android project for a floating pixel-art companion. The overlay uses `WindowManager.TYPE_APPLICATION_OVERLAY`; the settings screen uses Compose. It does not need an OpenAI API key and does not connect to any API.
 
 [Download PixiePop Android 1.4.0 debug APK](https://github.com/Nobitakuns/Dzjmaster.com/releases/download/pixiepop-v1.4.0/PixiePop-Android-V1.4.0-debug.apk). SHA-256: `4b8e701af56bdcd00d93f4d189a52488146830ce83645bb65ac06758afbb600b`. The release APK has version code 7 and installs over earlier versions when signed with the same debug key. Its Android package ID remains `com.ghostgirl.companion` to preserve existing installations and settings.
