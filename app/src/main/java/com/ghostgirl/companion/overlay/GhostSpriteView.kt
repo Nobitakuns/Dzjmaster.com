@@ -10,7 +10,7 @@ import android.graphics.RectF
 import android.os.SystemClock
 import android.view.View
 import androidx.core.graphics.withSave
-import com.ghostgirl.companion.model.GhostAtlas
+import com.ghostgirl.companion.model.GhostCharacter
 import com.ghostgirl.companion.model.GhostMood
 import kotlin.math.PI
 import kotlin.math.abs
@@ -18,10 +18,8 @@ import kotlin.math.sin
 
 /** Draws one atlas cell at a time; subtle transforms make each PNG pose animate. */
 class GhostSpriteView(context: Context) : View(context) {
-    private val atlas: Bitmap = context.assets.open("ghostgirl_atlas.png").use { stream ->
-        BitmapFactory.decodeStream(stream, null, BitmapFactory.Options().apply { inScaled = false })
-            ?: error("Missing GhostGirl sprite atlas")
-    }
+    private var character = GhostCharacter.GHOST_GIRL
+    private var atlas: Bitmap = loadAtlas(character)
     private val paint = Paint().apply {
         isFilterBitmap = false
         isDither = false
@@ -36,6 +34,21 @@ class GhostSpriteView(context: Context) : View(context) {
     private var screenActive = true
     var onClicked: (() -> Unit)? = null
     var onLongPressed: (() -> Unit)? = null
+
+    private fun loadAtlas(next: GhostCharacter): Bitmap = context.assets.open(next.asset).use { stream ->
+        BitmapFactory.decodeStream(stream, null, BitmapFactory.Options().apply { inScaled = false })
+            ?: error("Missing ${next.asset} sprite sheet")
+    }
+
+    fun setCharacter(next: GhostCharacter) {
+        if (next == character) return
+        val replacement = loadAtlas(next)
+        val old = atlas
+        atlas = replacement
+        character = next
+        old.recycle()
+        showMood(GhostMood.IDLE)
+    }
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -71,6 +84,7 @@ class GhostSpriteView(context: Context) : View(context) {
 
     override fun onDetachedFromWindow() {
         removeCallbacks(ticker)
+        atlas.recycle()
         super.onDetachedFromWindow()
     }
 
@@ -97,9 +111,13 @@ class GhostSpriteView(context: Context) : View(context) {
         }
         if (mood == GhostMood.IDLE && now - idleSinceMs > 60_000L) mood = GhostMood.SLEEPING
 
-        val cell = GhostAtlas.bounds(atlas.width, atlas.height, mood)
+        val cell = character.bounds(atlas.width, atlas.height, mood)
         source.set(cell.left, cell.top, cell.right, cell.bottom)
-        destination.set(0f, 0f, width.toFloat(), height.toFloat())
+        val aspect = source.width().toFloat() / source.height().coerceAtLeast(1)
+        val fittedWidth = minOf(width.toFloat(), height * aspect)
+        val fittedHeight = minOf(height.toFloat(), width / aspect)
+        destination.set((width - fittedWidth) / 2f, (height - fittedHeight) / 2f,
+            (width + fittedWidth) / 2f, (height + fittedHeight) / 2f)
         val seconds = now / 1000.0 * animationSpeed
         val wave = sin(seconds * 2.0 * PI)
         val unit = density

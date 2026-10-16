@@ -9,6 +9,7 @@ data class GhostSettings(
     val opacity: Float = 0.96f,
     val animationSpeed: Float = 1f,
     val snapToEdge: Boolean = true,
+    val character: GhostCharacter = GhostCharacter.GHOST_GIRL,
 ) {
     fun normalized(): GhostSettings = copy(
         sizeDp = sizeDp.coerceIn(72, 240),
@@ -72,6 +73,7 @@ class GhostSettingsStore(context: Context) {
         opacity = preferences.getFloat("opacity", 0.96f),
         animationSpeed = preferences.getFloat("animation_speed", 1f),
         snapToEdge = preferences.getBoolean("snap_to_edge", true),
+        character = GhostCharacter.fromId(preferences.getString("character_id", null)),
     ).normalized()
 
     fun save(settings: GhostSettings) {
@@ -81,6 +83,7 @@ class GhostSettingsStore(context: Context) {
             putFloat("opacity", safe.opacity)
             putFloat("animation_speed", safe.animationSpeed)
             putBoolean("snap_to_edge", safe.snapToEdge)
+            putString("character_id", safe.character.id)
         }
     }
 

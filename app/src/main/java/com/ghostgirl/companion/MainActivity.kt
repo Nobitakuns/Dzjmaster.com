@@ -42,8 +42,12 @@ class MainActivity : ComponentActivity() {
         }
     }
     private val errorListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == GhostSettingsStore.KEY_OVERLAY_ERROR || key == GhostSettingsStore.KEY_OVERLAY_VISIBLE) {
-            runOnUiThread { refreshStatus() }
+        if (key == GhostSettingsStore.KEY_OVERLAY_ERROR || key == GhostSettingsStore.KEY_OVERLAY_VISIBLE ||
+            key == "character_id") {
+            runOnUiThread {
+                refreshStatus()
+                if (key == "character_id") ghostSettings = settingsStore.read()
+            }
         }
     }
 

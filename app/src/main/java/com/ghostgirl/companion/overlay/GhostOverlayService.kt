@@ -19,6 +19,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
@@ -31,6 +32,7 @@ import androidx.core.net.toUri
 import com.ghostgirl.companion.MainActivity
 import com.ghostgirl.companion.R
 import com.ghostgirl.companion.model.GhostMood
+import com.ghostgirl.companion.model.TapSequence
 import com.ghostgirl.companion.model.GhostSettingsStore
 import com.ghostgirl.companion.model.OverlayGeometry
 import com.ghostgirl.companion.model.OverlayPoint
@@ -51,6 +53,10 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     private var receiverRegistered = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private var longPressTask: Runnable? = null
+    private val taps = TapSequence()
+    private val finishTaps = Runnable {
+        taps.flush(SystemClock.uptimeMillis())?.let(::performTapGesture)
+    }
     private var downRawX = 0f
     private var downRawY = 0f
     private var startWindowX = 0
@@ -60,7 +66,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     private val touchSlop by lazy { ViewConfiguration.get(this).scaledTouchSlop }
 
     private val preferenceListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key in setOf("size_dp", "opacity", "animation_speed", "snap_to_edge")) applySettings()
+        if (key in setOf("size_dp", "opacity", "animation_speed", "snap_to_edge", "character_id")) applySettings()
     }
 
     private val screenReceiver = object : BroadcastReceiver() {
@@ -131,6 +137,8 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
 
     override fun onDestroy() {
         longPressTask?.let { sprite?.removeCallbacks(it) }
+        mainHandler.removeCallbacks(finishTaps)
+        taps.cancel()
         if (preferencesRegistered) store.preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener)
         if (displayRegistered) displayManager.unregisterDisplayListener(this)
         if (receiverRegistered) unregisterReceiver(screenReceiver)
@@ -202,16 +210,15 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
             title = "GhostGirl floating companion"
         }
         val view = GhostSpriteView(overlayContext).apply {
-            contentDescription = "GhostGirl. Chạm mở ChatGPT, giữ để mở cài đặt, kéo để di chuyển."
+            contentDescription = "GhostGirl. Chạm một lần mở ChatGPT, hai lần vui vẻ, ba lần đổi nhân vật, giữ để mở cài đặt."
             isClickable = true
             isLongClickable = true
             importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_YES
             setAnimationSpeed(settings.animationSpeed)
-            onClicked = {
-                showMood(GhostMood.HAPPY, 900L)
-                launchChatGpt()
-            }
+            setCharacter(settings.character)
+            onClicked = { recordTap() }
             onLongPressed = {
+                clearTaps()
                 showMood(GhostMood.REACTING, 900L)
                 openSettings()
             }
@@ -244,6 +251,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
         val settings = store.read()
         params.alpha = settings.opacity
         sprite?.setAnimationSpeed(settings.animationSpeed)
+        sprite?.setCharacter(settings.character)
         refreshScreenBounds()
     }
 
@@ -289,6 +297,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
                 val dy = event.rawY - downRawY
                 if (!dragging && (abs(dx) > touchSlop || abs(dy) > touchSlop)) {
                     dragging = true
+                    clearTaps()
                     longPressTask?.let(view::removeCallbacks)
                     view.showMood(GhostMood.WALKING)
                 }
@@ -360,6 +369,35 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
             putExtra(MainActivity.EXTRA_OPENED_FROM_OVERLAY, true)
         }
         startActivity(intent)
+    }
+
+    private fun recordTap() {
+        val gesture = taps.tap(SystemClock.uptimeMillis())
+        mainHandler.removeCallbacks(finishTaps)
+        gesture?.let(::performTapGesture)
+        if (taps.hasPending()) mainHandler.postDelayed(finishTaps, 330L)
+    }
+
+    private fun clearTaps() {
+        mainHandler.removeCallbacks(finishTaps)
+        taps.cancel()
+    }
+
+    private fun performTapGesture(gesture: TapSequence.Gesture) {
+        when (gesture) {
+            TapSequence.Gesture.SINGLE -> {
+                sprite?.showMood(GhostMood.HAPPY, 900L)
+                launchChatGpt()
+            }
+            TapSequence.Gesture.DOUBLE -> sprite?.showMood(GhostMood.HAPPY, 2_000L)
+            TapSequence.Gesture.TRIPLE -> {
+                val next = store.read().character.next()
+                sprite?.setCharacter(next)
+                store.save(store.read().copy(character = next))
+                sprite?.showMood(GhostMood.REACTING, 1_100L)
+                Toast.makeText(this, next.label, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun launchChatGpt() {

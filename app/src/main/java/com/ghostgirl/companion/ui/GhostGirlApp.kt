@@ -47,7 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.ghostgirl.companion.model.GhostAtlas
+import com.ghostgirl.companion.model.GhostCharacter
 import com.ghostgirl.companion.model.GhostMood
 import com.ghostgirl.companion.model.GhostSettings
 import kotlin.math.roundToInt
@@ -100,11 +100,25 @@ fun GhostGirlApp(
                     shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        GhostSpritePreview(previewMood)
+                        GhostSpritePreview(settings.character, previewMood)
                         Spacer(Modifier.height(8.dp))
-                        Text(previewMood.label, fontWeight = FontWeight.SemiBold)
-                        Text("Art prototype có thể thay thế", color = Color.LightGray,
+                        Text("${settings.character.label} · ${previewMood.label}", fontWeight = FontWeight.SemiBold)
+                        Text("Art prototype theo ảnh tham chiếu, có thể thay sprite", color = Color.LightGray,
                             style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            item {
+                Text("Chọn nhân vật", style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GhostCharacter.entries.forEach { character ->
+                        FilterChip(selected = settings.character == character,
+                            onClick = {
+                                previewMood = GhostMood.IDLE
+                                onSettingsChanged(settings.copy(character = character))
+                            }, label = { Text(character.label) })
                     }
                 }
             }
@@ -186,7 +200,7 @@ fun GhostGirlApp(
                 }
             }
             item {
-                Text("Chạm GhostGirl để mở ứng dụng ChatGPT đã cài. Nếu chưa cài, GhostGirl mở trang ứng dụng trên Play Store. Giữ nhân vật để mở cài đặt; kéo để di chuyển. GhostGirl không tự mở Voice và không cần API key.",
+                Text("Chạm 1 lần: mở ChatGPT hoặc Play Store. Chạm 2 lần: phản ứng vui. Chạm 3 lần: đổi nhân vật. Nhấn giữ: mở cài đặt. Kéo: di chuyển. GhostGirl không tự mở Voice và không cần API key.",
                     color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -194,18 +208,23 @@ fun GhostGirlApp(
 }
 
 @Composable
-private fun GhostSpritePreview(mood: GhostMood) {
+private fun GhostSpritePreview(character: GhostCharacter, mood: GhostMood) {
     val context = LocalContext.current
-    val atlas = remember {
-        context.assets.open("ghostgirl_atlas.png").use { BitmapFactory.decodeStream(it) }.asImageBitmap()
+    val atlas = remember(character) {
+        context.assets.open(character.asset).use { BitmapFactory.decodeStream(it) }.asImageBitmap()
     }
     Canvas(Modifier.size(208.dp)) {
-        val bounds = GhostAtlas.bounds(atlas.width, atlas.height, mood)
+        val bounds = character.bounds(atlas.width, atlas.height, mood)
+        val aspect = (bounds.right - bounds.left).toFloat() / (bounds.bottom - bounds.top)
+        val fitWidth = minOf(size.width, size.height * aspect).roundToInt()
+        val fitHeight = minOf(size.height, size.width / aspect).roundToInt()
         drawImage(
             image = atlas,
             srcOffset = IntOffset(bounds.left, bounds.top),
             srcSize = IntSize(bounds.right - bounds.left, bounds.bottom - bounds.top),
-            dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+            dstOffset = IntOffset((size.width.roundToInt() - fitWidth) / 2,
+                (size.height.roundToInt() - fitHeight) / 2),
+            dstSize = IntSize(fitWidth, fitHeight),
             filterQuality = FilterQuality.None,
         )
     }
