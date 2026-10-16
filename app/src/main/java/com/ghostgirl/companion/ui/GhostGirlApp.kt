@@ -63,6 +63,8 @@ fun GhostGirlApp(
     overlayGranted: Boolean,
     notificationsGranted: Boolean,
     overlayRunning: Boolean,
+    overlayStarting: Boolean,
+    overlayError: String?,
     openedFromOverlay: Boolean,
     onSettingsChanged: (GhostSettings) -> Unit,
     onRequestOverlay: () -> Unit,
@@ -130,11 +132,16 @@ fun GhostGirlApp(
                                 color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
                         }
                         if (openedFromOverlay) Text("Đã mở cài đặt bằng cách giữ nhân vật.", color = Lavender)
-                        Button(onClick = onRequestOverlay, enabled = !overlayRunning,
+                        if (overlayRunning) Text("Nhân vật đang nổi. Hãy về màn hình chính để xem.", color = Lavender)
+                        if (overlayStarting) Text("Đang tạo cửa sổ nổi…", color = Lavender)
+                        if (overlayError != null) Text(overlayError, color = Rose,
+                            style = MaterialTheme.typography.bodySmall)
+                        Button(onClick = onRequestOverlay, enabled = !overlayRunning && !overlayStarting,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = Rose,
                                 contentColor = Background)) {
-                            Text(if (overlayGranted) "Bắt đầu nhân vật nổi" else "Cấp quyền và bắt đầu")
+                            Text(if (overlayStarting) "Đang khởi động…" else if (overlayGranted)
+                                "Bắt đầu nhân vật nổi" else "Cấp quyền và bắt đầu")
                         }
                         OutlinedButton(onClick = onStopOverlay, enabled = overlayRunning,
                             modifier = Modifier.fillMaxWidth()) { Text("Dừng nhân vật nổi") }

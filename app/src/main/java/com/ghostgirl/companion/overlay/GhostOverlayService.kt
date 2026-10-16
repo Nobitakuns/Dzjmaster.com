@@ -20,6 +20,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.ViewConfiguration
@@ -43,6 +44,11 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     private lateinit var store: GhostSettingsStore
     private var sprite: GhostSpriteView? = null
     private var windowParams: WindowManager.LayoutParams? = null
+    private var initialized = false
+    private var foregroundStarted = false
+    private var preferencesRegistered = false
+    private var displayRegistered = false
+    private var receiverRegistered = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private var longPressTask: Runnable? = null
     private var downRawX = 0f
@@ -66,30 +72,50 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     override fun onCreate() {
         super.onCreate()
         store = GhostSettingsStore(this)
-        overlayContext = createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
-        windowManager = overlayContext.getSystemService(WindowManager::class.java)
-        displayManager = getSystemService(DisplayManager::class.java)
-        createNotificationChannel()
-        val notification = buildNotification()
-        if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
-        store.preferences.registerOnSharedPreferenceChangeListener(preferenceListener)
-        displayManager.registerDisplayListener(this, mainHandler)
-        val screenFilter = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_SCREEN_ON)
-        }
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(screenReceiver, screenFilter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(screenReceiver, screenFilter)
+        try {
+            createNotificationChannel()
+            val notification = buildNotification()
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            foregroundStarted = true
+            // Some vendor implementations reject a window context before the first overlay is attached.
+            overlayContext = try {
+                createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
+            } catch (error: RuntimeException) {
+                Log.w(TAG, "Window context unavailable; using service context", error)
+                this
+            }
+            windowManager = overlayContext.getSystemService(WindowManager::class.java)
+            displayManager = getSystemService(DisplayManager::class.java)
+            store.preferences.registerOnSharedPreferenceChangeListener(preferenceListener)
+            preferencesRegistered = true
+            displayManager.registerDisplayListener(this, mainHandler)
+            displayRegistered = true
+            val screenFilter = IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+            }
+            if (Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(screenReceiver, screenFilter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(screenReceiver, screenFilter)
+            }
+            receiverRegistered = true
+            initialized = true
+        } catch (error: RuntimeException) {
+            reportFailure("Không khởi tạo được dịch vụ nổi", error)
+            stopSelf()
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!initialized) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         when (intent?.action) {
             ACTION_STOP -> {
                 stopSelf()
@@ -108,11 +134,11 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
 
     override fun onDestroy() {
         longPressTask?.let { sprite?.removeCallbacks(it) }
-        store.preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener)
-        displayManager.unregisterDisplayListener(this)
-        unregisterReceiver(screenReceiver)
+        if (preferencesRegistered) store.preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener)
+        if (displayRegistered) displayManager.unregisterDisplayListener(this)
+        if (receiverRegistered) unregisterReceiver(screenReceiver)
         removeOverlay()
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        if (foregroundStarted) stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
 
@@ -127,6 +153,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
 
     private fun showOverlay() {
         if (!Settings.canDrawOverlays(this)) {
+            store.setOverlayError("Android chưa cấp quyền hiển thị trên ứng dụng khác. Hãy cấp quyền rồi thử lại.")
             stopSelf()
             return
         }
@@ -134,6 +161,15 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
             applySettings()
             return
         }
+        try {
+            attachOverlay()
+        } catch (error: RuntimeException) {
+            reportFailure("Không tạo được cửa sổ nổi", error)
+            stopSelf()
+        }
+    }
+
+    private fun attachOverlay() {
         val settings = store.read()
         val screen = screenInfo()
         val size = sizeForScreen(screen, settings.sizeDp)
@@ -148,8 +184,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
             size,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -180,17 +215,20 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
                 handled
             }
         }
-        try {
-            windowManager.addView(view, params)
-            sprite = view
-            windowParams = params
-            isOverlayVisible = true
-            store.savePosition(point)
-        } catch (_: WindowManager.BadTokenException) {
-            stopSelf()
-        } catch (_: SecurityException) {
-            stopSelf()
-        }
+        windowManager.addView(view, params)
+        sprite = view
+        windowParams = params
+        isOverlayVisible = true
+        store.savePosition(point)
+        store.setOverlayError(null)
+        store.setOverlayVisible(true)
+    }
+
+    private fun reportFailure(stage: String, error: RuntimeException) {
+        Log.e(TAG, stage, error)
+        isOverlayVisible = false
+        store.setOverlayVisible(false)
+        store.setOverlayError("$stage (${error.javaClass.simpleName}): ${error.message.orEmpty().take(180)}")
     }
 
     private fun applySettings() {
@@ -344,15 +382,18 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     }
 
     private fun removeOverlay() {
-        val view = sprite ?: return
-        try {
-            windowManager.removeView(view)
-        } catch (_: IllegalArgumentException) {
-            // Already removed by the window manager during a display change.
+        val view = sprite
+        if (view != null && ::windowManager.isInitialized) {
+            try {
+                windowManager.removeView(view)
+            } catch (_: IllegalArgumentException) {
+                // Already removed by the window manager during a display change.
+            }
         }
         sprite = null
         windowParams = null
         isOverlayVisible = false
+        if (::store.isInitialized) store.setOverlayVisible(false)
     }
 
     private data class ScreenInfo(
@@ -364,10 +405,16 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     )
 
     private fun screenInfo(): ScreenInfo {
-        val metrics = windowManager.currentWindowMetrics
-        val safe = metrics.windowInsets.getInsetsIgnoringVisibility(
-            WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-        return ScreenInfo(metrics.bounds, safe.left, safe.top, safe.right, safe.bottom)
+        return try {
+            val metrics = windowManager.currentWindowMetrics
+            val safe = metrics.windowInsets.getInsetsIgnoringVisibility(
+                WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+            ScreenInfo(metrics.bounds, safe.left, safe.top, safe.right, safe.bottom)
+        } catch (error: RuntimeException) {
+            Log.w(TAG, "Window metrics unavailable; using display metrics", error)
+            val display = overlayContext.resources.displayMetrics
+            ScreenInfo(Rect(0, 0, display.widthPixels, display.heightPixels), 0, 0, 0, 0)
+        }
     }
 
     private fun dpToPx(dp: Int): Int = (dp * overlayContext.resources.displayMetrics.density).toInt()
@@ -405,6 +452,7 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     }
 
     companion object {
+        private const val TAG = "GhostOverlayService"
         const val ACTION_START = "com.ghostgirl.companion.START"
         const val ACTION_STOP = "com.ghostgirl.companion.STOP"
         const val ACTION_UPDATE = "com.ghostgirl.companion.UPDATE"

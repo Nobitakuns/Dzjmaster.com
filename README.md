@@ -2,7 +2,7 @@
 
 Native Kotlin + Jetpack Compose Android project for a floating pixel-art companion. The overlay uses `WindowManager.TYPE_APPLICATION_OVERLAY`; the settings screen uses Compose. It does not need an OpenAI API key and does not connect to any API.
 
-[Download GhostGirl Android V1 debug APK](https://raw.githubusercontent.com/Nobitakuns/Dzjmaster.com/new-project/downloads/GhostGirl-Android-V1-debug.apk) · SHA-256: `91466325062ec5d7ff21facfbc5dd130e591677ba2f42e22136d4c4938dfa150`
+[Download GhostGirl Android V1.0.1 debug APK](https://raw.githubusercontent.com/Nobitakuns/Dzjmaster.com/new-project/downloads/GhostGirl-Android-V1.0.1-debug.apk) (overlay startup fix). SHA-256: `f1071d7a6ce98062bf842d52b78ed3bf5456389f6fc3cdbb3defd23056a079c7`. The APK has version code 2 and installs over V1.
 
 ## Build and install
 
@@ -24,6 +24,8 @@ Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. Minimum Android version 
 4. Drag the character to move it. It snaps to the nearest screen edge when enabled. Long press it to open GhostGirl settings.
 5. Single tap the character to launch the installed official ChatGPT Android app through its normal launcher activity. If absent, GhostGirl opens the ChatGPT Play Store listing (or its web listing).
 6. Use **Dừng nhân vật nổi** or the notification **Dừng** action to remove the overlay and stop the service.
+
+If the floating character does not appear after tapping **Bắt đầu nhân vật nổi**, the app now shows a specific startup error instead of silently reverting to the start button. Check the on-screen message and Android's **Display over other apps** setting. The service also writes the full exception to Logcat under `GhostOverlayService` for diagnosis. The app starts its foreground service before requesting optional notification permission; notification denial does not block the overlay. Real-device verification on a Galaxy Z Fold5 is still required.
 
 GhostGirl does **not** start ChatGPT Voice, automate accessibility actions, use undocumented deep links, listen to speech, or read other apps. The app requests no Internet permission. The launcher package is `com.openai.chatgpt`; package visibility is declared in `<queries>`.
 

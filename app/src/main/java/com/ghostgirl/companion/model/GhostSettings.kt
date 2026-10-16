@@ -58,6 +58,11 @@ object OverlayGeometry {
 }
 
 class GhostSettingsStore(context: Context) {
+    companion object {
+        const val KEY_OVERLAY_ERROR = "overlay_error"
+        const val KEY_OVERLAY_VISIBLE = "overlay_visible"
+    }
+
     val preferences: SharedPreferences =
         context.getSharedPreferences("ghostgirl_settings", Context.MODE_PRIVATE)
 
@@ -87,5 +92,17 @@ class GhostSettingsStore(context: Context) {
             putInt("overlay_x", point.x)
             putInt("overlay_y", point.y)
         }
+    }
+
+    fun overlayError(): String? = preferences.getString(KEY_OVERLAY_ERROR, null)
+
+    fun setOverlayError(message: String?) {
+        preferences.edit {
+            if (message == null) remove(KEY_OVERLAY_ERROR) else putString(KEY_OVERLAY_ERROR, message)
+        }
+    }
+
+    fun setOverlayVisible(visible: Boolean) {
+        preferences.edit { putBoolean(KEY_OVERLAY_VISIBLE, visible) }
     }
 }
