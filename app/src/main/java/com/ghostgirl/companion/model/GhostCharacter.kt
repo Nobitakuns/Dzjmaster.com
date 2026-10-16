@@ -2,7 +2,7 @@ package com.ghostgirl.companion.model
 
 /** Five optional pixel-art characters come from the supplied reference sheets. */
 enum class GhostCharacter(val id: String, val label: String, val asset: String) {
-    GHOST_GIRL("ghostgirl", "GhostGirl", "ghostgirl_atlas.png"),
+    GHOST_GIRL("ghostgirl", "PixiePop", "ghostgirl_atlas.png"),
     MIMI("mimi", "Mimi mèo tím", "mimi_sheet.png"),
     SUNNY("sunny", "Sunny radio", "sunny_sheet.png"),
     RUBY("ruby", "Ruby tim đỏ", "ruby_sheet.png"),

@@ -101,7 +101,7 @@ fun GhostGirlApp(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Text("GhostGirl", style = MaterialTheme.typography.headlineLarge,
+                Text("PixiePop", style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold, color = Rose)
                 Text("Bạn đồng hành nổi trên màn hình", color = Lavender)
             }
@@ -233,7 +233,7 @@ fun GhostGirlApp(
                 }
             }
             item {
-                Text("Chạm 1 lần: mở ChatGPT hoặc Play Store. Chạm 2/3 lần: thao tác đã chọn ở trên. Nhấn giữ: mở cài đặt. Kéo: di chuyển. GhostGirl không tự mở Voice và không cần API key.",
+                Text("Chạm 1 lần: mở ChatGPT hoặc Play Store. Chạm 2/3 lần: thao tác đã chọn ở trên. Nhấn giữ: mở cài đặt. Kéo: di chuyển. PixiePop không tự mở Voice và không cần API key.",
                     color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
             }
         }

@@ -223,10 +223,10 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
             x = point.x
             y = point.y
             alpha = settings.opacity
-            title = "GhostGirl floating companion"
+            title = "PixiePop floating companion"
         }
         val view = GhostSpriteView(overlayContext).apply {
-            contentDescription = "GhostGirl. Chạm một lần mở ChatGPT, hai lần vui vẻ, ba lần đổi nhân vật, giữ để mở cài đặt."
+            contentDescription = "PixiePop. Chạm một lần mở ChatGPT, chạm hai hoặc ba lần theo cài đặt, nhấn giữ để mở cài đặt."
             isClickable = true
             isLongClickable = true
             importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_YES
@@ -558,8 +558,8 @@ class GhostOverlayService : Service(), DisplayManager.DisplayListener {
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(CHANNEL_ID, "GhostGirl overlay", NotificationManager.IMPORTANCE_LOW).apply {
-            description = "Điều khiển nhân vật nổi GhostGirl"
+        val channel = NotificationChannel(CHANNEL_ID, "PixiePop overlay", NotificationManager.IMPORTANCE_LOW).apply {
+            description = "Điều khiển nhân vật nổi PixiePop"
             setShowBadge(false)
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)

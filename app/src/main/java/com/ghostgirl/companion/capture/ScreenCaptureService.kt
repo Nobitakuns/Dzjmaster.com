@@ -118,7 +118,7 @@ class ScreenCaptureService : Service() {
                     if (cropped !== padded) padded.recycle()
                     saveScreenshot(cropped)
                     cropped.recycle()
-                    mainHandler.post { Toast.makeText(this, "Đã lưu ảnh vào Pictures/GhostGirl", Toast.LENGTH_SHORT).show() }
+                    mainHandler.post { Toast.makeText(this, "Đã lưu ảnh vào Pictures/PixiePop", Toast.LENGTH_SHORT).show() }
                 } catch (error: Exception) {
                     Log.e(TAG, "Screenshot failed", error)
                     mainHandler.post { Toast.makeText(this, "Không lưu được ảnh màn hình", Toast.LENGTH_SHORT).show() }
@@ -143,9 +143,9 @@ class ScreenCaptureService : Service() {
 
     private fun saveScreenshot(bitmap: Bitmap) {
         val values = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, "GhostGirl_${timestamp()}.png")
+            put(MediaStore.Images.Media.DISPLAY_NAME, "PixiePop_${timestamp()}.png")
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/GhostGirl")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/PixiePop")
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
         val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
@@ -161,9 +161,9 @@ class ScreenCaptureService : Service() {
     private fun startRecording(screenWidth: Int, screenHeight: Int, density: Int) {
         val (width, height) = RecordingSize.fit(screenWidth, screenHeight)
         val values = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, "GhostGirl_${timestamp()}.mp4")
+            put(MediaStore.Video.Media.DISPLAY_NAME, "PixiePop_${timestamp()}.mp4")
             put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/GhostGirl")
+            put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/PixiePop")
             put(MediaStore.Video.Media.IS_PENDING, 1)
         }
         outputUri = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
@@ -203,7 +203,7 @@ class ScreenCaptureService : Service() {
             try {
                 recorder?.stop()
                 finishOutput()
-                Toast.makeText(this, "Đã lưu video vào Movies/GhostGirl", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Đã lưu video vào Movies/PixiePop", Toast.LENGTH_SHORT).show()
             } catch (error: RuntimeException) {
                 Log.e(TAG, "Video recording could not be saved", error)
             }
@@ -225,7 +225,7 @@ class ScreenCaptureService : Service() {
 
     private fun createNotificationChannel() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "GhostGirl chụp/quay màn hình", NotificationManager.IMPORTANCE_LOW))
+            NotificationChannel(CHANNEL_ID, "PixiePop chụp/quay màn hình", NotificationManager.IMPORTANCE_LOW))
     }
 
     private fun buildNotification(record: Boolean): Notification {
@@ -236,7 +236,7 @@ class ScreenCaptureService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(if (record) "GhostGirl đang quay màn hình" else "GhostGirl đang chụp màn hình")
+            .setContentTitle(if (record) "PixiePop đang quay màn hình" else "PixiePop đang chụp màn hình")
             .setContentText(if (record) "Chạm Dừng để lưu video" else "Đang lưu ảnh")
             .setContentIntent(open)
             .setOngoing(true)
