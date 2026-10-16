@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">GhostGirl</string>
+    <string name="notification_title">GhostGirl đang hiển thị</string>
+    <string name="notification_text">Nhấn để mở cài đặt · Chạm nhân vật để mở ChatGPT</string>
+</resources>
